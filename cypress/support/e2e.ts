@@ -1,1 +1,2 @@
-// Global support file — custom commands get imported here in later steps.
+// Global support file — registers custom commands for every spec.
+import './commands';

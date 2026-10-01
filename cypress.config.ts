@@ -7,6 +7,13 @@ export default defineConfig({
   e2e: {
     baseUrl: 'https://automationexercise.com',
     specPattern: 'cypress/e2e/features/**/*.feature',
+    // Third-party consent dialog and ads overlay the app non-deterministically; they are not under test.
+    blockHosts: [
+      'fundingchoicesmessages.google.com',
+      '*.googlesyndication.com',
+      '*.doubleclick.net',
+      '*.adtrafficquality.google',
+    ],
     async setupNodeEvents(on, config) {
       await addCucumberPreprocessorPlugin(on, config);
       on(
