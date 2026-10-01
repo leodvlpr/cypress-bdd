@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "node16",
+    "moduleResolution": "node16",
+    "types": ["cypress", "node"],
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "paths": {
+      "@components/*": ["./cypress/support/components/*"],
+      "@commands/*": ["./cypress/support/commands/*"]
+    }
+  },
+  "include": ["cypress/**/*.ts", "cypress.config.ts"]
+}
