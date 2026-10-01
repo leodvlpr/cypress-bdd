@@ -5,7 +5,7 @@ import { buildUniqueUser } from '../data/user.factory';
 import { registerNewUser, startSignup } from '../flows/registration.flow';
 import { requireRegisteredUser, type ScenarioWorld } from '../world';
 
-When('un visitante se registra con datos nuevos', function (this: ScenarioWorld) {
+When('a visitor signs up with new details', function (this: ScenarioWorld) {
   const user = buildUniqueUser();
   registerNewUser(user);
   // The account exists from here on, so hooks.ts must clean it up even if later checks fail.
@@ -14,17 +14,17 @@ When('un visitante se registra con datos nuevos', function (this: ScenarioWorld)
   });
 });
 
-When('un visitante intenta registrarse con el email de ese usuario', function (this: ScenarioWorld) {
-  startSignup('Otro visitante', requireRegisteredUser(this).credentials.email);
+When("a visitor tries to sign up with that user's email", function (this: ScenarioWorld) {
+  startSignup('Another Visitor', requireRegisteredUser(this).credentials.email);
 });
 
-Then('su cuenta queda creada con la sesión iniciada', function (this: ScenarioWorld) {
+Then('the account is created and the user is logged in', function (this: ScenarioWorld) {
   registrationComponent.expectAccountCreated();
   // The session indicator is only rendered once the user leaves the confirmation page.
   registrationComponent.continueToStore();
   navigationComponent.expectLoggedInAs(requireRegisteredUser(this).name);
 });
 
-Then('se le informa de que el email ya está registrado', () => {
+Then('the visitor is told the email is already registered', () => {
   registrationComponent.expectEmailAlreadyExistsError();
 });

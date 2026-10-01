@@ -1,9 +1,9 @@
 @contact
-Feature: Contacto
-  Como visitante de la tienda
-  Quiero enviar una consulta
-  Para recibir ayuda del equipo de atención
+Feature: Contact
+  As a store visitor
+  I want to send an inquiry
+  So that I get help from the support team
 
-  Scenario: Un visitante envía una consulta
-    When un visitante envía una consulta desde el formulario de contacto
-    Then recibe la confirmación de que su consulta se ha enviado
+  Scenario: 012 [CONTACT] Validate contact form submission shows the success confirmation
+    When a visitor submits an inquiry through the contact form
+    Then the visitor sees confirmation that the inquiry was sent

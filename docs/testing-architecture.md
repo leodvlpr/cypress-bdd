@@ -1,136 +1,160 @@
-# Arquitectura de pruebas
+# Testing architecture
 
-Framework E2E con Cypress + TypeScript + Cucumber (`@badeball/cypress-cucumber-preprocessor`) contra
-https://automationexercise.com. Está organizado en **componentes de interacción y flows de negocio**, no en
-Page Objects.
+E2E framework built with Cypress + TypeScript + Cucumber (`@badeball/cypress-cucumber-preprocessor`) against
+https://automationexercise.com. It is organised as **interaction components and business flows**, not Page
+Objects.
 
-## Flujo de capas
+## Layer flow
 
 ```text
 feature (.feature)  →  step definition  →  flow  →  component  →  selector / custom command
 ```
 
-| Capa | Ubicación | Responsabilidad |
+| Layer | Location | Responsibility |
 | --- | --- | --- |
-| Feature | `cypress/e2e/features/` | Comportamiento observable en Gherkin. Sin selectores ni rutas. |
-| Step definition | `cypress/support/step_definitions/` | Traduce Gherkin a llamadas a flows/componentes. Delgada, sin selectores. |
-| Flow | `cypress/support/flows/` | Compone componentes para una intención de negocio (`signIn`). No conoce Gherkin. |
-| Component | `cypress/support/components/` | Una interacción pequeña y estable sobre un fragmento de UI (`authComponent.fillCredentials`). Objetos de funciones, no clases. |
-| Selector | `cypress/support/selectors/` | Valores `data-qa` por dominio. Sin lógica de Cypress. |
-| Command | `cypress/support/commands/` | Primitivas universales (`cy.getByQa`) y seeding por API. Tipados en `support/types/cypress.d.ts`. |
-| Datos | `cypress/support/data/`, `cypress/fixtures/` | Factorías de datos únicos por escenario y catálogo de productos de referencia. |
-| Contexto | `cypress/support/world.ts`, `step_definitions/hooks.ts` | Estado por escenario (`this`) y limpieza tras cada escenario. |
+| Feature | `cypress/e2e/features/` | Observable behaviour in Gherkin. No selectors or routes. |
+| Step definition | `cypress/support/step_definitions/` | Translates Gherkin into flow/component calls. Thin, no selectors. |
+| Flow | `cypress/support/flows/` | Composes components for a business intent (`signIn`). Knows nothing about Gherkin. |
+| Component | `cypress/support/components/` | One small, stable interaction on a piece of UI (`authComponent.fillCredentials`). Objects of functions, not classes. |
+| Selector | `cypress/support/selectors/` | `data-qa` values grouped by domain. No Cypress logic. |
+| Command | `cypress/support/commands/` | Universal primitives (`cy.getByQa`) and API seeding. Typed in `support/types/cypress.d.ts`. |
+| Data | `cypress/support/data/`, `cypress/fixtures/` | Factories for unique per-scenario data and the reference product catalog. |
+| Context | `cypress/support/world.ts`, `step_definitions/hooks.ts` | Per-scenario state (`this`) and cleanup after every scenario. |
 
-## Cobertura actual
+## Current coverage
 
-| Feature | Escenarios | Componentes / flows |
+| Feature | Scenarios | Components / flows |
 | --- | --- | --- |
-| `authentication.feature` | Login correcto (`@smoke`), contraseña incorrecta, logout | `auth`, `navigation` / `authentication.flow` |
-| `registration.feature` | Alta de cuenta por UI (`@smoke`), email ya registrado | `registration`, `navigation` / `registration.flow` |
-| `catalog.feature` | Búsqueda (`@smoke`), ficha de producto | `catalog` / `catalog.flow` |
-| `cart.feature` | Añadir varios productos con cantidades (`@smoke`, DataTable tipada), eliminar producto | `catalog`, `cart` / `cart.flow` |
-| `checkout.feature` | Pedido completo con sesión: dirección de entrega + pago (`@smoke`) | `cart`, `checkout` / `checkout.flow` |
-| `contact.feature` | Envío del formulario de contacto | `contact` / `contact.flow` |
-| `smoke.feature` | Carga de la home (cableado del setup) | — |
+| `authentication.feature` | Valid login (`@smoke`), incorrect password, logout | `auth`, `navigation` / `authentication.flow` |
+| `registration.feature` | UI sign-up (`@smoke`), email already registered | `registration`, `navigation` / `registration.flow` |
+| `catalog.feature` | Search (`@smoke`), product detail | `catalog` / `catalog.flow` |
+| `cart.feature` | Add several products with quantities (`@smoke`, typed DataTable), remove product | `catalog`, `cart` / `cart.flow` |
+| `checkout.feature` | Signed-in order: delivery address + payment (`@smoke`) | `cart`, `checkout` / `checkout.flow` |
+| `contact.feature` | Contact form submission | `contact` / `contact.flow` |
+| `smoke.feature` | Homepage loads (setup wiring) | — |
 
-Fuera de alcance por ahora: suscripción, categorías/marcas, reseñas, factura y scroll.
+Out of scope for now: subscription, categories/brands, reviews, invoice and scrolling.
 
-> Los step definitions viven en `cypress/support/step_definitions/` porque así lo define
-> `.cypress-cucumber-preprocessorrc.json` desde el setup inicial.
+> Step definitions live in `cypress/support/step_definitions/` because `.cypress-cucumber-preprocessorrc.json`
+> defines that location since the initial setup.
 
-## Convención de selectores
+## Language
 
-- La aplicación ya usa **`data-qa`** (`login-email`, `login-password`, `login-button`, …), por eso es la única
-  convención del framework: `cy.getByQa('login-email')`. No se introduce `data-testid` ni `data-cy`.
-- Los selectores se guardan como **valor** del atributo, agrupados por dominio y con nombre semántico:
+Everything in the project is written in English: feature names and descriptions, Given/When/Then steps,
+step definition expressions, test data, code, comments and documentation.
+
+## Scenario naming convention
+
+Every `Scenario` is titled `<ID> [COMPONENT] Validate <main assertion>`:
+
+```gherkin
+Scenario: 003 [LOGIN] Validate incorrect password shows the invalid credentials error
+```
+
+- **ID**: 3-digit number, unique across the suite and increasing. A new scenario takes the next free ID; IDs
+  are never reused, even when a scenario is deleted.
+- **Component**: functional area in upper case between brackets: `HOME`, `LOGIN`, `LOGOUT`, `SIGNUP`, `SEARCH`,
+  `PRODUCT`, `CART`, `CHECKOUT`, `CONTACT`. For a new area, add it to `COMPONENTS` in
+  `scripts/check-scenario-names.mjs`.
+- **Title**: starts with `Validate` and describes the scenario's main assertion.
+
+`npm run lint:scenarios` checks the format, duplicate IDs and components, and prints the next free ID.
+
+## Selector convention
+
+- The app already uses **`data-qa`** (`login-email`, `login-password`, `login-button`, …), so it is the only
+  convention in the framework: `cy.getByQa('login-email')`. Neither `data-testid` nor `data-cy` is introduced.
+- Selectors are stored as the attribute **value**, grouped by domain and with a semantic name:
 
   ```ts
   export const authSelectors = { loginEmailInput: 'login-email' } as const;
   ```
 
-- **Orden de preferencia** cuando un elemento no tiene `data-qa`:
-  1. `id` o atributo `data-*` propio de la app (`#search_product`, `#product-1`, `[data-product-id="1"]`),
-     guardado como selector CSS completo en el fichero de selectores y usado con `cy.get`. Cada uno está
-     marcado con un comentario y listado abajo como petición de `data-qa`.
-  2. Nombre accesible del control (`cy.contains('button', 'Add to cart')`) cuando no hay ningún atributo estable.
-- Prohibido: XPath, clases de estilo, estructura DOM, índices (`:nth-child`) o texto como selector principal.
-  El texto visible solo se usa cuando **es** el contrato que se valida (p. ej. `Logged in as <nombre>`).
-- Si un elemento no tiene `data-qa`, se documenta la petición a desarrollo en lugar de inventar un selector frágil.
+- **Order of preference** when an element has no `data-qa`:
+  1. An app-owned `id` or `data-*` attribute (`#search_product`, `#product-1`, `[data-product-id="1"]`), stored
+     as a full CSS selector in the selectors file and used with `cy.get`. Each one is marked with a comment and
+     listed below as a `data-qa` request.
+  2. The control's accessible name (`cy.contains('button', 'Add to cart')`) when there is no stable attribute.
+- Forbidden: XPath, style classes, DOM structure, indexes (`:nth-child`) or text as the primary selector.
+  Visible text is only used when it **is** the contract under test (e.g. `Logged in as <name>`).
+- When an element has no `data-qa`, the request to development is documented instead of inventing a fragile
+  selector.
 
-### Atributos `data-qa` pendientes de desarrollo
+### `data-qa` attributes requested from development
 
-| Elemento | Atributo propuesto | Uso actual |
+| Element | Proposed attribute | Current hook |
 | --- | --- | --- |
-| Indicador de sesión en cabecera ("Logged in as …") | `data-qa="logged-in-user"` | Texto visible (contrato de negocio) |
-| Enlace Logout de la cabecera | `data-qa="logout-link"` | Nombre accesible "Logout" |
-| Mensajes de error de login / registro | `data-qa="login-error"`, `data-qa="signup-error"` | Texto visible del mensaje |
-| Buscador de productos | `data-qa="search-input"`, `data-qa="search-button"` | `#search_product`, `#submit_search` |
-| Cantidad y botón "Add to cart" en la ficha | `data-qa="quantity"`, `data-qa="add-to-cart"` | `#quantity`, nombre accesible |
-| Modal "Added!" | `data-qa="cart-added-modal"` | `#cartModal` |
-| Filas del carrito, cantidad y borrar | `data-qa="cart-row"`, `data-qa="cart-quantity"`, `data-qa="cart-remove"` | `#product-<id>`, `[data-product-id]`, texto del botón |
-| "Proceed To Checkout" / "Place Order" | `data-qa="proceed-to-checkout"`, `data-qa="place-order"` | Nombre accesible |
-| Dirección de entrega y comentario del pedido | `data-qa="delivery-address"`, `data-qa="order-comment"` | `#address_delivery`, `textarea[name="message"]` |
-| Mensaje de éxito de contacto | `data-qa="contact-success"` | Texto visible del mensaje |
+| Header session indicator ("Logged in as …") | `data-qa="logged-in-user"` | Visible text (business contract) |
+| Header Logout link | `data-qa="logout-link"` | Accessible name "Logout" |
+| Login / sign-up error messages | `data-qa="login-error"`, `data-qa="signup-error"` | Visible message text |
+| Product search | `data-qa="search-input"`, `data-qa="search-button"` | `#search_product`, `#submit_search` |
+| Quantity and "Add to cart" button on product detail | `data-qa="quantity"`, `data-qa="add-to-cart"` | `#quantity`, accessible name |
+| "Added!" modal | `data-qa="cart-added-modal"` | `#cartModal` |
+| Cart rows, quantity and remove | `data-qa="cart-row"`, `data-qa="cart-quantity"`, `data-qa="cart-remove"` | `#product-<id>`, `[data-product-id]`, button text |
+| "Proceed To Checkout" / "Place Order" | `data-qa="proceed-to-checkout"`, `data-qa="place-order"` | Accessible name |
+| Delivery address and order comment | `data-qa="delivery-address"`, `data-qa="order-comment"` | `#address_delivery`, `textarea[name="message"]` |
+| Contact success message | `data-qa="contact-success"` | Visible message text |
 
-## Cuándo crear cada pieza
+## When to create each piece
 
-- **Component**: una interacción reutilizable sobre una zona concreta de la UI (formulario de login, cabecera,
-  modal, toast). Hace una comprobación mínima de disponibilidad (`should('be.visible')`) antes de interactuar.
-  Nunca navega, autentica y verifica a la vez.
-- **Flow**: cuando una intención de negocio necesita varios componentes (`openLogin`, `signIn`). Sin asserts
-  propios de un escenario; espera condiciones observables (alias de red) que forman parte de su contrato.
-- **Custom command**: solo para primitivas universales y repetidas (`getByQa`) o seeding/limpieza por API
-  (`createAccountByApi`, `deleteAccountByApi`). No se convierten flows en `cy.*` ni se crean comandos que acepten
-  selectores arbitrarios. Cada comando lleva JSDoc y declaración en `cypress.d.ts`.
-- **Step definition**: vocabulario de dominio (`When inicia sesión`), nunca genérico (`When I click "X"`).
+- **Component**: a reusable interaction on a specific area of the UI (login form, header, modal, toast). It runs
+  a minimal availability check (`should('be.visible')`) before interacting. It never navigates, authenticates
+  and verifies all at once.
+- **Flow**: when a business intent needs several components (`openLogin`, `signIn`). No scenario-specific
+  assertions; it waits for observable conditions (network aliases) that are part of its contract.
+- **Custom command**: only for universal, repeated primitives (`getByQa`) or API seeding/cleanup
+  (`createAccountByApi`, `deleteAccountByApi`). Flows are not turned into `cy.*` commands and no command accepts
+  arbitrary selectors. Every command has JSDoc and a declaration in `cypress.d.ts`.
+- **Step definition**: domain vocabulary (`When the user logs in`), never generic (`When I click "X"`).
 
-## Datos de prueba
+## Test data
 
-- Cada escenario crea su propio usuario con `buildUniqueUser()` (email único + contraseña aleatoria) mediante
-  `cy.createAccountByApi()` contra la API pública `POST /api/createAccount`.
-- El hook `After` lo elimina con `cy.deleteAccountByApi()` (`DELETE /api/deleteAccount`), así la ejecución es
-  idempotente y paralelizable.
-- El estado del escenario se comparte en el contexto (`this`) del preprocesador y se limpia tras cada escenario.
-- No hay credenciales reales en el repositorio. Las contraseñas no se escriben en el log de Cypress
+- Each scenario creates its own user with `buildUniqueUser()` (unique email + random password) through
+  `cy.createAccountByApi()` against the public `POST /api/createAccount` endpoint.
+- The `After` hook deletes it with `cy.deleteAccountByApi()` (`DELETE /api/deleteAccount`), so runs are
+  idempotent and parallel-safe.
+- Scenario state is shared through the preprocessor context (`this`) and cleared after every scenario.
+- There are no real credentials in the repository. Passwords are never written to the Cypress log
   (`log: false`, `failOnStatusCode: false`).
-- El catálogo de referencia (`cypress/fixtures/products.json`) refleja productos estables de la tienda demo
-  (verificados contra `GET /api/productsList`). Los features nombran productos y `findProduct()` falla con la
-  lista de productos conocidos si el nombre no existe.
-- Las tablas de Gherkin se convierten a tipos (`parseCartTable`) y una fila inválida falla indicando fila y columna.
-- El pago usa la tarjeta pública de prueba 4111 1111 1111 1111; la tienda no procesa pagos reales.
-- `cy.loginByApi` / `cy.setAuthSession` **no** se implementan: `POST /api/verifyLogin` solo valida credenciales
-  y no emite cookie de sesión, por lo que el login se hace por UI.
+- The reference catalog (`cypress/fixtures/products.json`) mirrors stable products of the demo store (checked
+  against `GET /api/productsList`). Features refer to products by name and `findProduct()` fails listing the
+  known products when the name does not exist.
+- Gherkin tables are converted to types (`parseCartTable`) and an invalid row fails naming the row and column.
+- Payment uses the public test card 4111 1111 1111 1111; the store does not process real payments.
+- `cy.loginByApi` / `cy.setAuthSession` are **not** implemented: `POST /api/verifyLogin` only validates
+  credentials and issues no session cookie, so login goes through the UI.
 
-## Red y terceros
+## Network and third parties
 
-- Cada flow declara `cy.intercept()` antes de la acción y espera el alias, nunca una duración fija: `POST /login`,
-  `GET /logout`, `POST /signup`, `GET /products?search=`, `GET /add_to_cart/<id>`, `GET /delete_cart/<id>`,
-  `GET /checkout`, `POST /payment`.
-- El formulario de contacto **no envía nada al servidor**: el JS de la página muestra un `confirm` y pinta el
-  mensaje de éxito en cliente. El flow espera ese `confirm` (stub `window:confirm`) como condición observable.
-  El escenario valida la experiencia de usuario, no la recepción del mensaje en backend.
-- `cypress.config.ts` bloquea con `blockHosts` el diálogo de consentimiento (Google Funding Choices) y los
-  anuncios: superponen la página de forma no determinista y no forman parte del sistema bajo prueba.
+- Every flow declares `cy.intercept()` before the action and waits for the alias, never a fixed duration:
+  `POST /login`, `GET /logout`, `POST /signup`, `GET /products?search=`, `GET /add_to_cart/<id>`,
+  `GET /delete_cart/<id>`, `GET /checkout`, `POST /payment`.
+- The contact form **sends nothing to the server**: the page's JS shows a `confirm` and renders the success
+  message client-side. The flow waits for that `confirm` (`window:confirm` stub) as the observable condition.
+  The scenario validates the user experience, not that the backend receives the message.
+- `cypress.config.ts` uses `blockHosts` to block the consent dialog (Google Funding Choices) and ads: they
+  overlay the page non-deterministically and are not part of the system under test.
 
-## Ejecución local
+## Running locally
 
 ```bash
 npm install
 npm run typecheck
-npx cypress run --spec cypress/e2e/features/authentication.feature   # feature de referencia
-npx cypress run --spec "cypress/e2e/features/cart.feature"           # cualquier feature por separado
-npm run cy:run                                                       # toda la suite
-npm run cy:open                                                      # modo interactivo
+npm run lint:scenarios                                               # scenario names + next free ID
+npx cypress run --spec cypress/e2e/features/authentication.feature   # reference feature
+npx cypress run --spec "cypress/e2e/features/cart.feature"           # any single feature
+npm run cy:run                                                       # whole suite
+npm run cy:open                                                      # interactive mode
 ```
 
-Requiere acceso a internet hacia https://automationexercise.com.
+Requires internet access to https://automationexercise.com.
 
-## Política futura de self-healing (no implementada)
+## Future self-healing policy (not implemented)
 
-1. Detectar el selector roto y recopilar evidencia (DOM, screenshot, request/response, histórico de ejecuciones).
-2. Proponer una reparación basada en atributos de prueba, sujeta a revisión humana.
-3. Validar en CI y abrir PR; nunca modificar selectores ni aceptar resultados automáticamente en `main`.
-4. Medir tasa de flakiness, fallos reparados y falsos positivos.
+1. Detect the broken selector and collect evidence (DOM, screenshot, request/response, run history).
+2. Propose a fix based on test attributes, subject to human review.
+3. Validate in CI and open a PR; never change selectors or accept results automatically on `main`.
+4. Measure flakiness rate, repaired failures and false positives.
 
-Un mecanismo que "encuentra algo parecido" puede ocultar una regresión real y restar credibilidad a la suite, por
-eso no se añaden fallbacks de selectores ni auto-reparación silenciosa.
+A mechanism that "finds something similar" can hide a real regression and undermine trust in the suite, so no
+selector fallbacks or silent self-repair are added.

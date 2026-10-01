@@ -3,10 +3,10 @@ import { contactComponent } from '../components/contact.component';
 import { buildContactMessage } from '../data/contact.factory';
 import { sendContactMessage } from '../flows/contact.flow';
 
-When('un visitante envía una consulta desde el formulario de contacto', () => {
+When('a visitor submits an inquiry through the contact form', () => {
   sendContactMessage(buildContactMessage());
 });
 
-Then('recibe la confirmación de que su consulta se ha enviado', () => {
+Then('the visitor sees confirmation that the inquiry was sent', () => {
   contactComponent.expectSubmitted();
 });

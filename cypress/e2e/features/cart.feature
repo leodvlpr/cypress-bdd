@@ -1,21 +1,21 @@
 @cart
-Feature: Carrito de compra
-  Como cliente de la tienda
-  Quiero gestionar los productos de mi carrito
-  Para comprar exactamente lo que necesito
+Feature: Shopping cart
+  As a store customer
+  I want to manage the products in my cart
+  So that I buy exactly what I need
 
   @smoke
-  Scenario: Un cliente añade varios productos con distintas cantidades
-    When añade al carrito:
-      | producto   | cantidad |
+  Scenario: 009 [CART] Validate cart lists each added product with its quantity and total price
+    When the customer adds to the cart:
+      | product    | quantity |
       | Blue Top   | 3        |
       | Men Tshirt | 1        |
-    Then el carrito contiene:
-      | producto   | cantidad |
+    Then the cart contains:
+      | product    | quantity |
       | Blue Top   | 3        |
       | Men Tshirt | 1        |
 
-  Scenario: Un cliente elimina un producto del carrito
-    Given tiene en el carrito 1 unidad de "Blue Top"
-    When elimina "Blue Top" del carrito
-    Then "Blue Top" ya no está en el carrito
+  Scenario: 010 [CART] Validate removed product disappears and the cart is shown as empty
+    Given the customer has 1 unit of "Blue Top" in the cart
+    When the customer removes "Blue Top" from the cart
+    Then "Blue Top" is no longer in the cart

@@ -1,15 +1,15 @@
 @registration
-Feature: Registro de usuarios
-  Como visitante de la tienda
-  Quiero crear una cuenta
-  Para poder comprar con mis datos guardados
+Feature: User registration
+  As a store visitor
+  I want to create an account
+  So that I can shop with my details saved
 
   @smoke
-  Scenario: Un visitante crea una cuenta nueva
-    When un visitante se registra con datos nuevos
-    Then su cuenta queda creada con la sesión iniciada
+  Scenario: 005 [SIGNUP] Validate new visitor creates an account and is logged in
+    When a visitor signs up with new details
+    Then the account is created and the user is logged in
 
-  Scenario: No se puede registrar un email que ya existe
-    Given existe un usuario registrado con credenciales válidas
-    When un visitante intenta registrarse con el email de ese usuario
-    Then se le informa de que el email ya está registrado
+  Scenario: 006 [SIGNUP] Validate already registered email shows the email exists error
+    Given a registered user with valid credentials
+    When a visitor tries to sign up with that user's email
+    Then the visitor is told the email is already registered

@@ -1,14 +1,14 @@
 @checkout
-Feature: Finalizar compra
-  Como cliente registrado
-  Quiero pagar los productos de mi carrito
-  Para recibir mi pedido en la dirección de mi cuenta
+Feature: Checkout
+  As a registered customer
+  I want to pay for the products in my cart
+  So that I receive my order at my account address
 
   @smoke
-  Scenario: Un cliente con sesión iniciada completa un pedido
-    Given ha iniciado sesión como usuario registrado
-    And tiene en el carrito 2 unidades de "Blue Top"
-    When procede a finalizar la compra
-    Then la dirección de entrega es la de su perfil
-    When paga el pedido con una tarjeta de prueba
-    Then el pedido queda confirmado
+  Scenario: 011 [CHECKOUT] Validate logged-in user places an order delivered to their profile address
+    Given a registered user is logged in
+    And the customer has 2 units of "Blue Top" in the cart
+    When the customer proceeds to checkout
+    Then the delivery address matches the customer's profile
+    When the customer pays for the order with a test card
+    Then the order is confirmed

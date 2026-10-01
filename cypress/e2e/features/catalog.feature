@@ -1,14 +1,14 @@
 @catalog
-Feature: Catálogo de productos
-  Como cliente de la tienda
-  Quiero encontrar productos y consultar su información
-  Para decidir qué comprar
+Feature: Product catalog
+  As a store customer
+  I want to find products and check their information
+  So that I can decide what to buy
 
   @smoke
-  Scenario: Un cliente busca un producto por su nombre
-    When busca el producto "Blue Top"
-    Then "Blue Top" aparece en los resultados de búsqueda
+  Scenario: 007 [SEARCH] Validate searched product appears in the search results
+    When the customer searches for the product "Blue Top"
+    Then "Blue Top" appears in the search results
 
-  Scenario: Un cliente consulta el detalle de un producto
-    When consulta el detalle del producto "Blue Top"
-    Then ve la ficha completa del producto "Blue Top"
+  Scenario: 008 [PRODUCT] Validate product detail shows name, category, price, availability, condition and brand
+    When the customer opens the details of the product "Blue Top"
+    Then the full details of the product "Blue Top" are shown

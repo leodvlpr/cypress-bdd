@@ -5,14 +5,14 @@ import { buildUniqueUser } from '../data/user.factory';
 import { openLogin, signIn, signOut } from '../flows/authentication.flow';
 import { requireRegisteredUser, type ScenarioWorld } from '../world';
 
-Given('existe un usuario registrado con credenciales válidas', function (this: ScenarioWorld) {
+Given('a registered user with valid credentials', function (this: ScenarioWorld) {
   const user = buildUniqueUser();
   cy.createAccountByApi(user).then(() => {
     this.registeredUser = user;
   });
 });
 
-Given('ha iniciado sesión como usuario registrado', function (this: ScenarioWorld) {
+Given('a registered user is logged in', function (this: ScenarioWorld) {
   const user = buildUniqueUser();
   cy.createAccountByApi(user).then(() => {
     this.registeredUser = user;
@@ -22,32 +22,32 @@ Given('ha iniciado sesión como usuario registrado', function (this: ScenarioWor
   });
 });
 
-When('inicia sesión', function (this: ScenarioWorld) {
+When('the user logs in', function (this: ScenarioWorld) {
   const { credentials } = requireRegisteredUser(this);
   openLogin();
   signIn(credentials);
 });
 
-When('inicia sesión con una contraseña incorrecta', function (this: ScenarioWorld) {
+When('the user logs in with an incorrect password', function (this: ScenarioWorld) {
   const { credentials } = requireRegisteredUser(this);
   openLogin();
-  signIn({ email: credentials.email, password: `${credentials.password}-incorrecta` });
+  signIn({ email: credentials.email, password: `${credentials.password}-wrong` });
 });
 
-When('cierra sesión', () => {
+When('the user logs out', () => {
   signOut();
 });
 
-Then('accede a su área privada', function (this: ScenarioWorld) {
+Then('the user is logged in to their account', function (this: ScenarioWorld) {
   navigationComponent.expectLoggedInAs(requireRegisteredUser(this).name);
 });
 
-Then('se le informa de que las credenciales son incorrectas', () => {
+Then('the user is told the credentials are incorrect', () => {
   authComponent.expectInvalidCredentialsError();
   navigationComponent.expectLoggedOut();
 });
 
-Then('vuelve a la pantalla de acceso sin sesión activa', () => {
+Then('the user is back on the login page without an active session', () => {
   cy.location('pathname').should('eq', '/login');
   navigationComponent.expectLoggedOut();
 });
