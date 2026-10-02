@@ -1,5 +1,6 @@
 import { Then, When } from '@badeball/cypress-cucumber-preprocessor';
-import { checkoutComponent } from '../components/checkout.component';
+import { orderConfirmationComponent } from '../components/order-confirmation.component';
+import { orderReviewComponent } from '../components/order-review.component';
 import { buildTestCard } from '../data/payment.factory';
 import { payOrder, proceedToCheckout } from '../flows/checkout.flow';
 import { requireRegisteredUser, type ScenarioWorld } from '../world';
@@ -13,9 +14,9 @@ When('the customer pays for the order with a test card', function (this: Scenari
 });
 
 Then("the delivery address matches the customer's profile", function (this: ScenarioWorld) {
-  checkoutComponent.expectDeliveryAddress(requireRegisteredUser(this).profile);
+  orderReviewComponent.expectDeliveryAddress(requireRegisteredUser(this).profile);
 });
 
 Then('the order is confirmed', () => {
-  checkoutComponent.expectOrderPlaced();
+  orderConfirmationComponent.expectVisible();
 });

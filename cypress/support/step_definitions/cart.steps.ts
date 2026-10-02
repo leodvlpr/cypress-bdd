@@ -1,5 +1,5 @@
 import { DataTable, Given, Then, When } from '@badeball/cypress-cucumber-preprocessor';
-import { cartComponent } from '../components/cart.component';
+import { cartTableComponent } from '../components/cart-table.component';
 import { findProduct } from '../data/catalog';
 import { addToCart, openCart, removeFromCart } from '../flows/cart.flow';
 import type { CartLine } from '../types/catalog';
@@ -39,10 +39,10 @@ When('the customer removes {string} from the cart', (name: string) => {
 
 Then('the cart contains:', (table: DataTable) => {
   openCart();
-  parseCartTable(table).forEach((line) => cartComponent.expectLine(line));
+  parseCartTable(table).forEach((line) => cartTableComponent.expectLine(line));
 });
 
 Then('{string} is no longer in the cart', (name: string) => {
-  cartComponent.expectProductAbsent(findProduct(name));
-  cartComponent.expectEmpty();
+  cartTableComponent.expectProductAbsent(findProduct(name));
+  cartTableComponent.expectEmpty();
 });

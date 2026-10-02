@@ -14,10 +14,10 @@ feature (.feature)  →  step definition  →  flow  →  component  →  select
 | --- | --- | --- |
 | Feature | `cypress/e2e/features/` | Observable behaviour in Gherkin. No selectors or routes. |
 | Step definition | `cypress/support/step_definitions/` | Translates Gherkin into flow/component calls. Thin, no selectors. |
-| Flow | `cypress/support/flows/` | Composes components for a business intent (`signIn`). Knows nothing about Gherkin. |
-| Component | `cypress/support/components/` | One small, stable interaction on a piece of UI (`authComponent.fillCredentials`). Objects of functions, not classes. |
-| Selector | `cypress/support/selectors/` | `data-qa` values grouped by domain. No Cypress logic. |
-| Command | `cypress/support/commands/` | Universal primitives (`cy.getByQa`) and API seeding. Typed in `support/types/cypress.d.ts`. |
+| Flow | `cypress/support/flows/` | Composes components for a business intent (`signIn`). Knows nothing about Gherkin. Routes and `cy.visit` live in `navigation.flow.ts`. |
+| Component | `cypress/support/components/` | One reusable UI piece (header, signup form, cart table, payment form…), not a page. Objects of functions, not classes. |
+| Selector | `cypress/support/selectors/` | One file per UI piece with named selector definitions (ordered strategies). No Cypress logic. |
+| Command | `cypress/support/commands/` | `cy.getElement` (the single selector resolver) and API seeding. Typed in `support/types/cypress.d.ts`. |
 | Data | `cypress/support/data/`, `cypress/fixtures/` | Factories for unique per-scenario data and the reference product catalog. |
 | Context | `cypress/support/world.ts`, `step_definitions/hooks.ts` | Per-scenario state (`this`) and cleanup after every scenario. |
 
@@ -25,13 +25,13 @@ feature (.feature)  →  step definition  →  flow  →  component  →  select
 
 | Feature | Scenarios | Components / flows |
 | --- | --- | --- |
-| `authentication.feature` | Valid login (`@smoke`), incorrect password, logout | `auth`, `navigation` / `authentication.flow` |
-| `registration.feature` | UI sign-up (`@smoke`), email already registered | `registration`, `navigation` / `registration.flow` |
-| `catalog.feature` | Search (`@smoke`), product detail | `catalog` / `catalog.flow` |
-| `cart.feature` | Add several products with quantities (`@smoke`, typed DataTable), remove product | `catalog`, `cart` / `cart.flow` |
-| `checkout.feature` | Signed-in order: delivery address + payment (`@smoke`) | `cart`, `checkout` / `checkout.flow` |
+| `home.feature` | Homepage loads with the store logo (`@smoke`) | `header` / `navigation.flow` |
+| `authentication.feature` | Valid login (`@smoke`), incorrect password, logout | `auth`, `header` / `authentication.flow` |
+| `registration.feature` | UI sign-up (`@smoke`), email already registered | `signup-form`, `account-details-form`, `account-created`, `header` / `registration.flow` |
+| `catalog.feature` | Search (`@smoke`), product detail | `product-search`, `product-detail` / `catalog.flow` |
+| `cart.feature` | Add several products with quantities (`@smoke`, typed DataTable), remove product | `product-detail`, `cart-added-modal`, `cart-table` / `cart.flow` |
+| `checkout.feature` | Signed-in order: delivery address + payment (`@smoke`) | `cart-table`, `order-review`, `payment-form`, `order-confirmation` / `checkout.flow` |
 | `contact.feature` | Contact form submission | `contact` / `contact.flow` |
-| `smoke.feature` | Homepage loads (setup wiring) | — |
 
 Out of scope for now: subscription, categories/brands, reviews, invoice and scrolling.
 
@@ -62,21 +62,39 @@ Scenario: 003 [LOGIN] Validate incorrect password shows the invalid credentials 
 
 ## Selector convention
 
-- The app already uses **`data-qa`** (`login-email`, `login-password`, `login-button`, …), so it is the only
-  convention in the framework: `cy.getByQa('login-email')`. Neither `data-testid` nor `data-cy` is introduced.
-- Selectors are stored as the attribute **value**, grouped by domain and with a semantic name:
+### Single point of resolution
 
-  ```ts
-  export const authSelectors = { loginEmailInput: 'login-email' } as const;
-  ```
+Every element lookup goes through **`cy.getElement(definition)`** (`support/commands/selector.commands.ts`).
+Components never call `cy.get`, `cy.contains` or `.find` directly, and only `navigation.flow.ts` calls `cy.visit`
+or `cy.location`. `npm run lint:selectors` enforces this.
 
-- **Order of preference** when an element has no `data-qa`:
-  1. An app-owned `id` or `data-*` attribute (`#search_product`, `#product-1`, `[data-product-id="1"]`), stored
-     as a full CSS selector in the selectors file and used with `cy.get`. Each one is marked with a comment and
-     listed below as a `data-qa` request.
-  2. The control's accessible name (`cy.contains('button', 'Add to cart')`) when there is no stable attribute.
+A selector definition has a stable logical name and an ordered list of strategies:
+
+```ts
+export const cartTableSelectors = {
+  row: (productId: number) => selector('cartTable.row', css(`#product-${productId}`)),
+  proceedToCheckoutButton: selector('cartTable.proceedToCheckoutButton', text('Proceed To Checkout', 'a')),
+};
+```
+
+| Strategy | Builder | Use |
+| --- | --- | --- |
+| `qa` | `qa('login-email')` | `data-qa` attribute: the agreed contract with development. Always preferred. |
+| `css` | `css('#search_product')` | App-owned `id`, `data-*` attribute or form field name, while a `data-qa` is missing. |
+| `text` | `text('Add to cart', 'button')` | Accessible name or visible text, only when that text is the contract under test. |
+
+`getElement` currently resolves the **first** strategy. Fallback to the next strategies, with logging of which
+strategy matched, is the agreed self-healing scope and is added in `getElement` only (Step 4): definitions and
+components do not change.
+
+### Rules
+
+- The app already uses **`data-qa`** (`login-email`, `login-password`, `login-button`, …), so it is the preferred
+  strategy. Neither `data-testid` nor `data-cy` is introduced.
 - Forbidden: XPath, style classes, DOM structure, indexes (`:nth-child`) or text as the primary selector.
   Visible text is only used when it **is** the contract under test (e.g. `Logged in as <name>`).
+- Business data (product name, price, address) is asserted inside a resolved element, e.g. a cart row with
+  `.within()`, so the check is scoped to the right UI piece.
 - When an element has no `data-qa`, the request to development is documented instead of inventing a fragile
   selector.
 
@@ -97,12 +115,15 @@ Scenario: 003 [LOGIN] Validate incorrect password shows the invalid credentials 
 
 ## When to create each piece
 
-- **Component**: a reusable interaction on a specific area of the UI (login form, header, modal, toast). It runs
-  a minimal availability check (`should('be.visible')`) before interacting. It never navigates, authenticates
-  and verifies all at once.
+- **Component**: one reusable UI piece (login form, header, "Added!" modal, cart table, payment form), named
+  after the piece, not the page. A screen with several pieces gets several components; a piece shown on several
+  screens gets one. It runs a minimal availability check (`should('be.visible')`) before interacting, never
+  calls `cy.visit`, and never navigates, authenticates and verifies all at once.
 - **Flow**: when a business intent needs several components (`openLogin`, `signIn`). No scenario-specific
   assertions; it waits for observable conditions (network aliases) that are part of its contract.
-- **Custom command**: only for universal, repeated primitives (`getByQa`) or API seeding/cleanup
+- **Selector definition**: one per element the suite touches, in the selectors file of its UI piece, named
+  `<piece>.<element>`.
+- **Custom command**: only for universal, repeated primitives (`getElement`) or API seeding/cleanup
   (`createAccountByApi`, `deleteAccountByApi`). Flows are not turned into `cy.*` commands and no command accepts
   arbitrary selectors. Every command has JSDoc and a declaration in `cypress.d.ts`.
 - **Step definition**: domain vocabulary (`When the user logs in`), never generic (`When I click "X"`).
@@ -140,6 +161,7 @@ Scenario: 003 [LOGIN] Validate incorrect password shows the invalid credentials 
 ```bash
 npm install
 npm run typecheck
+npm run lint                                                         # scenario names + selector usage
 npm run lint:scenarios                                               # scenario names + next free ID
 npx cypress run --spec cypress/e2e/features/authentication.feature   # reference feature
 npx cypress run --spec "cypress/e2e/features/cart.feature"           # any single feature
@@ -149,12 +171,10 @@ npm run cy:open                                                      # interacti
 
 Requires internet access to https://automationexercise.com.
 
-## Future self-healing policy (not implemented)
+## Self-healing policy
 
-1. Detect the broken selector and collect evidence (DOM, screenshot, request/response, run history).
-2. Propose a fix based on test attributes, subject to human review.
-3. Validate in CI and open a PR; never change selectors or accept results automatically on `main`.
-4. Measure flakiness rate, repaired failures and false positives.
-
-A mechanism that "finds something similar" can hide a real regression and undermine trust in the suite, so no
-selector fallbacks or silent self-repair are added.
+- **Agreed scope:** fallback selectors **with logging** of which strategy was used. The single resolution point
+  (`cy.getElement`) and ordered strategies exist so this can be added without touching components (Step 4).
+- **Rejected:** silent auto-repair, meaning code or selectors that rewrite themselves without human review.
+- Any change to selector definitions goes through a PR and CI; nothing is accepted automatically on `main`.
+- Track flakiness rate, fallback usage (drift) and false positives over time.

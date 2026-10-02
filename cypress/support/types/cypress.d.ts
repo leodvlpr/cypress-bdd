@@ -1,13 +1,15 @@
 import type { Credentials, RegisteredUser } from './account';
+import type { SelectorDefinition } from './selector';
 
 declare global {
   namespace Cypress {
     interface Chainable {
       /**
-       * Gets element(s) by their `data-qa` attribute, the test-id convention used by automationexercise.com.
-       * @example cy.getByQa('login-email')
+       * Resolves a selector definition to its element(s). Every element lookup goes through this
+       * command, so selector strategy handling lives in one place.
+       * @example cy.getElement(authSelectors.loginEmailInput)
        */
-      getByQa(qa: string, options?: Partial<Loggable & Timeoutable & Withinable & Shadow>): Chainable<JQuery<HTMLElement>>;
+      getElement(definition: SelectorDefinition, options?: Partial<Loggable & Timeoutable>): Chainable<JQuery<HTMLElement>>;
 
       /**
        * Creates an account through the public API. Fails with the API message if the account is not created.

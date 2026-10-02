@@ -1,8 +1,8 @@
 import { Given, Then, When } from '@badeball/cypress-cucumber-preprocessor';
 import { authComponent } from '../components/auth.component';
-import { navigationComponent } from '../components/navigation.component';
+import { headerComponent } from '../components/header.component';
 import { buildUniqueUser } from '../data/user.factory';
-import { openLogin, signIn, signOut } from '../flows/authentication.flow';
+import { expectSignedOutOnLoginPage, openLogin, signIn, signOut } from '../flows/authentication.flow';
 import { requireRegisteredUser, type ScenarioWorld } from '../world';
 
 Given('a registered user with valid credentials', function (this: ScenarioWorld) {
@@ -18,7 +18,7 @@ Given('a registered user is logged in', function (this: ScenarioWorld) {
     this.registeredUser = user;
     openLogin();
     signIn(user.credentials);
-    navigationComponent.expectLoggedInAs(user.name);
+    headerComponent.expectLoggedInAs(user.name);
   });
 });
 
@@ -39,15 +39,14 @@ When('the user logs out', () => {
 });
 
 Then('the user is logged in to their account', function (this: ScenarioWorld) {
-  navigationComponent.expectLoggedInAs(requireRegisteredUser(this).name);
+  headerComponent.expectLoggedInAs(requireRegisteredUser(this).name);
 });
 
 Then('the user is told the credentials are incorrect', () => {
   authComponent.expectInvalidCredentialsError();
-  navigationComponent.expectLoggedOut();
+  headerComponent.expectLoggedOut();
 });
 
 Then('the user is back on the login page without an active session', () => {
-  cy.location('pathname').should('eq', '/login');
-  navigationComponent.expectLoggedOut();
+  expectSignedOutOnLoginPage();
 });

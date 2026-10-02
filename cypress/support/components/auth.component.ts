@@ -3,15 +3,15 @@ import type { Credentials } from '../types/account';
 
 export const authComponent = {
   fillCredentials({ email, password }: Credentials) {
-    cy.getByQa(authSelectors.loginEmailInput).should('be.visible').clear().type(email);
-    cy.getByQa(authSelectors.loginPasswordInput).should('be.visible').clear().type(password, { log: false });
+    cy.getElement(authSelectors.loginEmailInput).should('be.visible').clear().type(email);
+    cy.getElement(authSelectors.loginPasswordInput).should('be.visible').clear().type(password, { log: false });
   },
 
   submit() {
-    return cy.getByQa(authSelectors.loginSubmitButton).should('be.enabled').click();
+    return cy.getElement(authSelectors.loginSubmitButton).should('be.enabled').click();
   },
 
   expectInvalidCredentialsError() {
-    return cy.contains('Your email or password is incorrect!').should('be.visible');
+    return cy.getElement(authSelectors.invalidCredentialsError).should('be.visible');
   },
 };

@@ -1,5 +1,6 @@
-import { cartComponent } from '../components/cart.component';
-import { checkoutComponent } from '../components/checkout.component';
+import { cartTableComponent } from '../components/cart-table.component';
+import { orderReviewComponent } from '../components/order-review.component';
+import { paymentFormComponent } from '../components/payment-form.component';
 import type { PaymentCard } from '../types/checkout';
 import { openCart } from './cart.flow';
 
@@ -7,15 +8,15 @@ import { openCart } from './cart.flow';
 export function proceedToCheckout() {
   openCart();
   cy.intercept({ method: 'GET', pathname: '/checkout' }).as('checkoutRequest');
-  cartComponent.proceedToCheckout();
+  cartTableComponent.proceedToCheckout();
   cy.wait('@checkoutRequest');
 }
 
 export function payOrder(comment: string, card: PaymentCard) {
-  checkoutComponent.addComment(comment);
-  checkoutComponent.placeOrder();
+  orderReviewComponent.addComment(comment);
+  orderReviewComponent.placeOrder();
   cy.intercept({ method: 'POST', pathname: '/payment' }).as('paymentRequest');
-  checkoutComponent.fillCard(card);
-  checkoutComponent.pay();
+  paymentFormComponent.fillCard(card);
+  paymentFormComponent.pay();
   cy.wait('@paymentRequest');
 }

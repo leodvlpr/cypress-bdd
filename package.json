@@ -6,7 +6,9 @@
     "cy:open": "cypress open",
     "cy:run": "cypress run",
     "typecheck": "tsc --noEmit",
-    "lint:scenarios": "node scripts/check-scenario-names.mjs"
+    "lint:scenarios": "node scripts/check-scenario-names.mjs",
+    "lint:selectors": "node scripts/check-selector-usage.mjs",
+    "lint": "npm run lint:scenarios && npm run lint:selectors"
   },
   "keywords": [],
   "author": "",

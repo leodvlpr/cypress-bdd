@@ -1,2 +1,2 @@
-import './ui.commands';
+import './selector.commands';
 import './authentication.commands';

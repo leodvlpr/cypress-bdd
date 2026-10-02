@@ -1,14 +1,14 @@
-import { catalogComponent } from '../components/catalog.component';
-import { navigationComponent } from '../components/navigation.component';
+import { productSearchComponent } from '../components/product-search.component';
 import type { Product } from '../types/catalog';
+import { visitProductDetails, visitProducts } from './navigation.flow';
 
 export function searchProduct(term: string) {
-  navigationComponent.goToProducts();
+  visitProducts();
   cy.intercept({ method: 'GET', pathname: '/products', query: { search: term } }).as('searchRequest');
-  catalogComponent.search(term);
+  productSearchComponent.search(term);
   cy.wait('@searchRequest');
 }
 
 export function openProductDetails(product: Product) {
-  navigationComponent.goToProductDetails(product.id);
+  visitProductDetails(product.id);
 }
