@@ -1,6 +1,6 @@
 import { Then } from '@badeball/cypress-cucumber-preprocessor';
+import { expectDegradedLogoDriftInDemoLog } from '../assertions/drift.assertions';
 import { resilienceDemoComponent } from '../components/resilience-demo.component';
-import { expectDegradedLogoDriftInDemoLog } from '../flows/resilience-demo.flow';
 
 Then('the store logo is still found through its fallback selector', () => {
   resilienceDemoComponent.expectDegradedLogoResolved();

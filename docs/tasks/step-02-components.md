@@ -1,27 +1,27 @@
-# Instrucciones para Claude Code: Componentes reutilizables para Cypress + Cucumber
+# Instructions for Claude Code: Reusable components for Cypress + Cucumber
 
-## Rol y objetivo
+## Role and objective
 
-Actúa como un **Senior QA Automation Engineer**. Trabaja sobre el repositorio existente y construye únicamente la primera capa de un framework de pruebas E2E basado en **Cypress + Cucumber + Gherkin + BDD**. La arquitectura debe estar orientada a **componentes de interacción reutilizables por flujo de negocio**, no a Page Object Model (POM).
+Act as a **Senior QA Automation Engineer**. Work on the existing repository and build only the first layer of an E2E testing framework based on **Cypress + Cucumber + Gherkin + BDD**. The architecture must be oriented to **reusable interaction components per business flow**, not the Page Object Model (POM).
 
-El objetivo de este cambio es dejar una base pequeña, clara y extensible para escribir escenarios Gherkin legibles y vincularlos a flujos/componentes reutilizables. No implementes todavía GitHub Actions, notificaciones por email, revisión con Claude, ni self-healing completo; solo deja puntos de extensión documentados cuando aporten valor.
+The goal of this change is to leave a small, clear and extensible base for writing readable Gherkin scenarios and linking them to reusable flows/components. Do not implement GitHub Actions, email notifications, Claude review or full self-healing yet; only leave documented extension points where they add value.
 
-> Antes de modificar archivos, inspecciona el `package.json`, la configuración de Cypress, los directorios existentes, el `README` y los ficheros de configuración de TypeScript/ESLint. Conserva las decisiones y versiones ya adoptadas. No sustituyas el preprocesador Cucumber ni reestructures el proyecto si el setup actual ya funciona.
+> Before modifying files, inspect `package.json`, the Cypress configuration, the existing directories, the `README` and the TypeScript/ESLint configuration files. Keep the decisions and versions already adopted. Do not replace the Cucumber preprocessor or restructure the project if the current setup already works.
 
-## Principios obligatorios
+## Mandatory principles
 
-1. **BDD primero.** Los `.feature` describen intención y comportamiento observable, no selectores, rutas internas ni detalles de implementación.
-2. **Sin POM.** No crees clases del estilo `LoginPage`, `DashboardPage`, `BasePage`, ni métodos que representen una página completa. Tampoco escondas POM bajo otro nombre.
-3. **Componentes y flujos.** Modela capacidades reutilizables de interfaz: `auth`, `navigation`, `form`, `modal`, `toast`, `table`, `date-picker`, etc. Los _flows_ componen esas capacidades para lograr una intención de negocio, por ejemplo `signInAs()` o `createProject()`.
-4. **Responsabilidad única.** Los componentes encapsulan una interacción estable y pequeña; los flows orquestan varios componentes; los step definitions traducen lenguaje Gherkin a flows/acciones. No mezclar estas capas.
-5. **Selectores explícitos y estables.** Prioriza `data-testid` o `data-cy` acordados con desarrollo. No uses XPath, selectores dependientes de clases de estilo, estructura DOM, índices (`:nth-child`) ni texto como selector principal. Usa el texto visible solo cuando sea el contrato de accesibilidad/negocio que se está validando.
-6. **Pruebas deterministas.** No uses `cy.wait(1000)`, esperas arbitrarias, `force: true`, reintentos manuales ni dependencias entre escenarios. Espera una condición observable, un alias de red o un estado accesible.
-7. **Código TypeScript estricto.** Respeta la configuración existente. No introduzcas `any` salvo una justificación localizada. Añade tipos para datos de escenario, respuestas y comandos personalizados.
-8. **Cambios mínimos.** Añade solo dependencias imprescindibles. No cambies reglas globales de timeout para resolver inestabilidad local.
+1. **BDD first.** `.feature` files describe intent and observable behaviour, not selectors, internal routes or implementation details.
+2. **No POM.** Do not create classes like `LoginPage`, `DashboardPage`, `BasePage`, or methods that represent a whole page. Do not hide POM under another name either.
+3. **Components and flows.** Model reusable UI capabilities: `auth`, `navigation`, `form`, `modal`, `toast`, `table`, `date-picker`, etc. _Flows_ compose those capabilities to achieve a business intent, for example `signInAs()` or `createProject()`.
+4. **Single responsibility.** Components encapsulate a small, stable interaction; flows orchestrate several components; step definitions translate Gherkin language into flows/actions. Do not mix these layers.
+5. **Explicit, stable selectors.** Prioritise `data-testid` or `data-cy` agreed with development. Do not use XPath, selectors that depend on style classes, DOM structure, indexes (`:nth-child`) or text as the primary selector. Use visible text only when it is the accessibility/business contract being validated.
+6. **Deterministic tests.** Do not use `cy.wait(1000)`, arbitrary waits, `force: true`, manual retries or dependencies between scenarios. Wait for an observable condition, a network alias or an accessible state.
+7. **Strict TypeScript.** Respect the existing configuration. Do not introduce `any` without a localised justification. Add types for scenario data, responses and custom commands.
+8. **Minimal changes.** Add only essential dependencies. Do not change global timeout rules to work around local flakiness.
 
-## Arquitectura objetivo
+## Target architecture
 
-Adapta nombres y extensiones a la estructura real del repositorio, pero preserva estas responsabilidades:
+Adapt names and extensions to the repository's real structure, but preserve these responsibilities:
 
 ```text
 cypress/
@@ -49,122 +49,122 @@ cypress/
   fixtures/
 ```
 
-Si el preprocesador obliga a otra ubicación para features o step definitions, conserva su convención. La separación de responsabilidades sí es obligatoria.
+If the preprocessor requires another location for features or step definitions, keep its convention. The separation of responsibilities is mandatory.
 
-### 1. Selectores (`support/selectors`)
+### 1. Selectors (`support/selectors`)
 
-- Centraliza únicamente selectores `data-*` que sean propios y estables.
-- Expórtalos por dominio, con nombres semánticos y sin lógica de Cypress.
-- Un selector debe ser un contrato de UI, por ejemplo `emailInput: '[data-cy="login-email"]'`.
-- Si la aplicación no dispone todavía de atributos estables, documenta qué atributos necesita añadir desarrollo. No inventes selectores frágiles como sustituto.
+- Centralise only `data-*` selectors that are owned and stable.
+- Export them by domain, with semantic names and no Cypress logic.
+- A selector must be a UI contract, for example `emailInput: '[data-cy="login-email"]'`.
+- If the application does not have stable attributes yet, document which attributes development needs to add. Do not invent fragile selectors as a substitute.
 
-### 2. Componentes (`support/components`)
+### 2. Components (`support/components`)
 
-- Deben ser funciones puras de orquestación Cypress, no clases.
-- Cada función opera sobre una capacidad o fragmento de interfaz y recibe datos explícitos.
-- Deben realizar una comprobación mínima de disponibilidad antes de interactuar y devolver la cadena Cypress cuando tenga sentido.
-- Ejemplos válidos: `authComponent.fillCredentials()`, `authComponent.submit()`, `feedbackComponent.expectSuccessToast()`.
-- Ejemplos inválidos: `loginPage.login()`, `dashboardPage.openSettings()`, o un componente que navega, autentica y verifica todo a la vez.
+- They must be pure Cypress orchestration functions, not classes.
+- Each function operates on one capability or piece of UI and receives explicit data.
+- They must run a minimal availability check before interacting and return the Cypress chain when it makes sense.
+- Valid examples: `authComponent.fillCredentials()`, `authComponent.submit()`, `feedbackComponent.expectSuccessToast()`.
+- Invalid examples: `loginPage.login()`, `dashboardPage.openSettings()`, or a component that navigates, authenticates and verifies all at once.
 
 ### 3. Flows (`support/flows`)
 
-- Componen componentes para una intención reutilizable de negocio.
-- Ejemplo: `signIn({ email, password })` llama a `authComponent.fillCredentials()` y `authComponent.submit()`; la navegación inicial puede ser responsabilidad explícita del escenario o de un flow `openLogin()` separado.
-- No coloques asserts específicos de un escenario dentro de un flow, salvo postcondiciones universales del flow que formen parte de su contrato.
-- El flow no debe conocer frases Gherkin ni tablas Cucumber.
+- They compose components for a reusable business intent.
+- Example: `signIn({ email, password })` calls `authComponent.fillCredentials()` and `authComponent.submit()`; the initial navigation can be the explicit responsibility of the scenario or of a separate `openLogin()` flow.
+- Do not put scenario-specific assertions inside a flow, except universal postconditions that are part of the flow's contract.
+- The flow must not know Gherkin phrases or Cucumber tables.
 
 ### 4. Custom Commands (`support/commands`)
 
-Usa comandos para primitivas universales, repetidas y expresivas; no conviertas todos los flows en `cy.*`.
+Use commands for universal, repeated, expressive primitives; do not turn every flow into `cy.*`.
 
-Implementa, si no existen equivalentes:
+Implement, if no equivalents exist:
 
-- `cy.getByTestId(testId, options?)`: localiza `[data-testid="..."]` de forma segura.
-- `cy.getByCy(testId, options?)`: localiza `[data-cy="..."]` si esa es la convención ya adoptada. No mantengas dos convenciones nuevas sin necesidad.
-- `cy.loginByApi(credentials)`: solo si el backend y el setup de test lo permiten; debe autenticar por API de forma controlada, validar la respuesta y no registrar secretos.
-- `cy.setAuthSession(...)`: solo si el mecanismo de sesión de la aplicación está bien definido y permite aislamiento. Usa `cy.session()` cuando corresponda.
+- `cy.getByTestId(testId, options?)`: safely locates `[data-testid="..."]`.
+- `cy.getByCy(testId, options?)`: locates `[data-cy="..."]` if that is the convention already adopted. Do not keep two new conventions without need.
+- `cy.loginByApi(credentials)`: only if the backend and the test setup allow it; it must authenticate through the API in a controlled way, validate the response and not log secrets.
+- `cy.setAuthSession(...)`: only if the application's session mechanism is well defined and allows isolation. Use `cy.session()` where appropriate.
 
-Todos los comandos deben tener declaración TypeScript en `cypress.d.ts`, documentación JSDoc breve y tests de uso representativos. Evita un comando genérico que acepte una cadena arbitraria de selector: solo oculta fragilidad.
+Every command must have a TypeScript declaration in `cypress.d.ts`, brief JSDoc and representative usage tests. Avoid a generic command that accepts an arbitrary selector string: it only hides fragility.
 
 ### 5. Step definitions (`e2e/step-definitions`)
 
-- Deben ser delgadas: parsean parámetros Gherkin, convierten datos de tablas a tipos y llaman a flows/componentes.
-- No deben contener selectores, peticiones HTTP de bajo nivel, lógica de negocio duplicada ni grandes assertions.
-- Evita steps genéricos como `When I click "X"`; favorece vocabulario de dominio: `When el usuario inicia sesión con credenciales válidas`.
-- Define tipos para `DataTable` y validación clara de campos obligatorios. Un dato inválido debe fallar con un mensaje útil.
-- No uses estado global mutable entre steps. Si es imprescindible compartir datos de escenario, usa el `World`/contexto que recomiende el preprocesador ya instalado y límpialo por escenario.
+- They must be thin: parse Gherkin parameters, convert table data to types and call flows/components.
+- They must not contain selectors, low-level HTTP requests, duplicated business logic or large assertions.
+- Avoid generic steps like `When I click "X"`; favour domain vocabulary: `When the user signs in with valid credentials`.
+- Define types for `DataTable` and clear validation of required fields. Invalid data must fail with a useful message.
+- Do not use mutable global state between steps. If sharing scenario data is essential, use the `World`/context recommended by the installed preprocessor and clear it per scenario.
 
-## Entregables a implementar
+## Deliverables
 
-1. Verifica que los scripts de Cypress y Cucumber existentes ejecutan al menos un feature. Si faltan por una configuración incompleta, corrígela con el cambio mínimo y explica la decisión.
-2. Crea un feature de referencia pequeño y realista: **autenticación exitosa**. Debe expresar el comportamiento, por ejemplo:
+1. Verify that the existing Cypress and Cucumber scripts run at least one feature. If they are missing because of an incomplete configuration, fix it with the minimal change and explain the decision.
+2. Create a small, realistic reference feature: **successful authentication**. It must express the behaviour, for example:
 
 ```gherkin
 @smoke @authentication
-Feature: Autenticación
+Feature: Authentication
 
-  Scenario: Un usuario registrado accede a su área privada
-    Given existe un usuario registrado con credenciales válidas
-    When inicia sesión
-    Then accede a su área privada
+  Scenario: A registered user accesses their private area
+    Given a registered user with valid credentials exists
+    When they sign in
+    Then they access their private area
 ```
 
-No implementes pasos que supongan datos/productos que el repositorio no posee. Ajusta el feature al dominio real de la aplicación. Si no hay app o entorno disponible, deja el feature marcado como plantilla/documentación y explica qué contratos faltan.
+Do not implement steps that assume data/products the repository does not have. Adapt the feature to the application's real domain. If there is no app or environment available, mark the feature as a template/documentation and explain which contracts are missing.
 
-3. Implementa el conjunto mínimo de selector + componente + flow + step definitions necesario para dicho feature, siguiendo las capas anteriores.
-4. Implementa los custom commands estrictamente necesarios y sus declaraciones TypeScript.
-5. Añade documentación corta en el `README` existente, o en `docs/testing-architecture.md` si aún no hay sección apropiada, que explique:
-   - flujo `feature → step definition → flow → component → selector/command`;
-   - convención para nuevos selectores;
-   - cuándo crear un componente, flow o command;
-   - cómo ejecutar localmente el feature de referencia.
-6. Añade o actualiza una estrategia de datos de prueba para el ejemplo. Prioridad: API/seeding idempotente o fixture controlado. Nunca credenciales reales ni datos de producción en el repositorio.
+3. Implement the minimal set of selector + component + flow + step definitions needed for that feature, following the layers above.
+4. Implement the strictly necessary custom commands and their TypeScript declarations.
+5. Add short documentation to the existing `README`, or to `docs/testing-architecture.md` if there is no suitable section yet, explaining:
+   - the `feature → step definition → flow → component → selector/command` flow;
+   - the convention for new selectors;
+   - when to create a component, flow or command;
+   - how to run the reference feature locally.
+6. Add or update a test data strategy for the example. Priority: idempotent API/seeding or a controlled fixture. Never real credentials or production data in the repository.
 
-## Manejo de red y datos
+## Network and data handling
 
-- Para E2E crítico, usa el backend real en un entorno de prueba controlado cuando sea viable; observa endpoints relevantes con `cy.intercept()` y espera el alias, no una duración fija.
-- Usa _stubs_ con `cy.intercept()` para errores, latencia y casos límite; no para convertir toda la suite E2E en una prueba aislada del backend.
-- Declara `cy.intercept()` antes de la acción que dispara la solicitud, especialmente antes de `cy.visit()` si la solicitud se hace al cargar la página.
-- Los escenarios deben crear y limpiar sus datos o usar datos idempotentes con identificadores únicos. La ejecución paralela no debe generar colisiones.
-- No expongas tokens, contraseñas, connection strings ni PII en logs, screenshots, vídeos, fixtures o mensajes de error.
+- For critical E2E, use the real backend in a controlled test environment when feasible; observe relevant endpoints with `cy.intercept()` and wait for the alias, not a fixed duration.
+- Use _stubs_ with `cy.intercept()` for errors, latency and edge cases; not to turn the whole E2E suite into a test isolated from the backend.
+- Declare `cy.intercept()` before the action that triggers the request, especially before `cy.visit()` if the request happens on page load.
+- Scenarios must create and clean up their data, or use idempotent data with unique identifiers. Parallel execution must not cause collisions.
+- Do not expose tokens, passwords, connection strings or PII in logs, screenshots, videos, fixtures or error messages.
 
-## Preparación para mantenimiento y self-healing (sin implementarlo todavía)
+## Preparing for maintenance and self-healing (without implementing it yet)
 
-Diseña para que los cambios de UI se localicen en archivos de selector/componente. **No** agregues IA, auto-reparación silenciosa, fallback a múltiples selectores ni tests que aprueben pese a no verificar el comportamiento esperado.
+Design so that UI changes are localised in selector/component files. Do **not** add AI, silent auto-repair, fallback to multiple selectors or tests that pass without verifying the expected behaviour.
 
-Deja, como máximo, una sección de documentación con esta política futura:
+Leave, at most, a documentation section with this future policy:
 
-1. Detectar selector roto y recopilar evidencia (DOM, screenshot, request/response, ejecución histórica).
-2. Proponer una reparación usando atributos de prueba y revisión humana.
-3. Ejecutar validación en CI y abrir PR; nunca modificar selectores ni aceptar resultados automáticamente en `main`.
-4. Medir tasa de flakiness, fallos reparados y falsos positivos.
+1. Detect a broken selector and collect evidence (DOM, screenshot, request/response, run history).
+2. Propose a repair using test attributes and human review.
+3. Run validation in CI and open a PR; never modify selectors or accept results automatically on `main`.
+4. Measure flakiness rate, repaired failures and false positives.
 
-La razón es importante: un mecanismo que “encuentra algo parecido” puede ocultar una regresión real y reducir la credibilidad de la suite.
+The reason matters: a mechanism that "finds something similar" can hide a real regression and reduce the suite's credibility.
 
-## Calidad, verificación y entrega
+## Quality, verification and delivery
 
-Antes de finalizar:
+Before finishing:
 
-1. Ejecuta el chequeo de tipos, lint y formato disponibles.
-2. Ejecuta el feature/espec de referencia en modo headless si hay aplicación/entorno configurado. Si no puede ejecutarse, no simules éxito: indica exactamente el comando intentado, el bloqueo y lo que falta.
-3. Comprueba que cada escenario pasa de manera independiente y que no contiene `cy.wait(<número>)`, `force: true`, `.only`, credenciales hard-coded ni selectores CSS de presentación.
-4. Revisa el diff para asegurar que no se han modificado archivos ajenos a este alcance.
-5. Entrega un resumen con: archivos creados/modificados, arquitectura resultante, comandos ejecutados, resultados y cualquier decisión/limitación que requiera revisión humana.
+1. Run the available type check, lint and formatting.
+2. Run the reference feature/spec in headless mode if an application/environment is configured. If it cannot run, do not simulate success: state exactly the command attempted, the blocker and what is missing.
+3. Check that each scenario passes independently and contains no `cy.wait(<number>)`, `force: true`, `.only`, hard-coded credentials or presentational CSS selectors.
+4. Review the diff to make sure no files outside this scope were modified.
+5. Deliver a summary with: files created/modified, resulting architecture, commands run, results and any decision/limitation that needs human review.
 
-## Criterios de aceptación
+## Acceptance criteria
 
-- Existe un feature Gherkin de referencia legible, junto con step definitions delgadas.
-- La interacción se organiza como selector → componente → flow → step definition, sin clases Page Object ni funciones “de página”.
-- Los custom commands necesarios están tipados y no duplican flows.
-- No hay esperas fijas ni selectores frágiles en los archivos nuevos.
-- La documentación permite a otro ingeniero extender el framework de modo consistente.
-- La validación ejecutada y sus resultados quedan reportados con honestidad.
+- A readable reference Gherkin feature exists, with thin step definitions.
+- Interaction is organised as selector → component → flow → step definition, with no Page Object classes or "page" functions.
+- The necessary custom commands are typed and do not duplicate flows.
+- There are no fixed waits or fragile selectors in the new files.
+- The documentation lets another engineer extend the framework consistently.
+- The validation run and its results are reported honestly.
 
-## Fuera de alcance de esta iteración
+## Out of scope for this iteration
 
-- Workflow semanal de GitHub Actions y correo.
-- Automatización de PR review con Claude.
-- Implementación de self-healing con IA.
-- Cobertura completa de UI/API, reportes, visual testing, performance o accesibilidad.
+- Weekly GitHub Actions workflow and email.
+- Automated PR review with Claude.
+- AI self-healing implementation.
+- Full UI/API coverage, reports, visual testing, performance or accessibility.
 
-Después de entregar esta base, espera confirmación antes de implementar cualquiera de esos bloques.
+After delivering this base, wait for confirmation before implementing any of those blocks.

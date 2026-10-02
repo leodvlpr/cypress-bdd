@@ -15,6 +15,7 @@ feature (.feature)  →  step definition  →  flow  →  component  →  select
 | Feature | `cypress/e2e/features/` | Observable behaviour in Gherkin. No selectors or routes. |
 | Step definition | `cypress/support/step_definitions/` | Translates Gherkin into flow/component calls. Thin, no selectors. |
 | Flow | `cypress/support/flows/` | Composes components for a business intent (`signIn`). Knows nothing about Gherkin. Routes and `cy.visit` live in `navigation.flow.ts`. |
+| Assertion | `cypress/support/assertions/` | Checks of a resulting state that no single component owns (signed out on the login page, drift event logged). Used by `Then` steps; looks up elements only through components and flows. |
 | Component | `cypress/support/components/` | One reusable UI piece (header, signup form, cart table, payment form…), not a page. Objects of functions, not classes. |
 | Selector | `cypress/support/selectors/` | One file per UI piece with named selector definitions (ordered strategies). No Cypress logic. |
 | Command | `cypress/support/commands/` | `cy.getElement` (the single selector resolver) and API seeding. Typed in `support/types/cypress.d.ts`. |
@@ -161,7 +162,8 @@ from drift logs.
 ### Adding a fallback
 
 Only add a fallback after confirming on the real site (Playwright) that it identifies **the same DOM node** as
-the primary strategy. Every fallback in the suite was checked this way. Elements with no second stable hook
+the primary strategy, and record the result in [`selector-verification.md`](selector-verification.md). Every
+fallback in the suite was checked this way. Elements with no second stable hook
 keep a single strategy (e.g. `#cartModal`, `#submit_search`, the cart remove link).
 
 ### Rules
@@ -169,6 +171,10 @@ keep a single strategy (e.g. `#cartModal`, `#submit_search`, the cart remove lin
 - The app already uses **`data-qa`** (`login-email`, `login-password`, `login-button`, …), so it is the preferred
   strategy. Neither `data-testid` nor `data-cy` is introduced.
 - Forbidden: XPath, style classes, DOM structure, indexes (`:nth-child`) or text as the primary selector.
+- **Narrow exception, fallbacks only:** a fallback may be scoped by an app-owned attribute of an ancestor when the
+  element's own attributes are ambiguous, e.g. `[data-qa="title"] input[value="Mr"]` (data-qa on the radio group)
+  or `form[action="/login"] input[name="email"]` (two forms share `name="email"`). Never as the primary
+  strategy.
   Visible text is only used when it **is** the contract under test (e.g. `Logged in as <name>`).
 - Business data (product name, price, address) is asserted inside a resolved element, e.g. a cart row with
   `.within()`, so the check is scoped to the right UI piece.
@@ -198,6 +204,8 @@ keep a single strategy (e.g. `#cartModal`, `#submit_search`, the cart remove lin
   calls `cy.visit`, and never navigates, authenticates and verifies all at once.
 - **Flow**: when a business intent needs several components (`openLogin`, `signIn`). No scenario-specific
   assertions; it waits for observable conditions (network aliases) that are part of its contract.
+- **Assertion helper** (`support/assertions/`): when a `Then` checks a resulting state that spans components
+  or lives outside the UI (current path + header, drift log). It never interacts with the page.
 - **Selector definition**: one per element the suite touches, in the selectors file of its UI piece, named
   `<piece>.<element>`.
 - **Custom command**: only for universal, repeated primitives (`getElement`) or API seeding/cleanup

@@ -1,7 +1,7 @@
 import { authComponent } from '../components/auth.component';
 import { headerComponent } from '../components/header.component';
 import type { Credentials } from '../types/account';
-import { expectCurrentPath, routes, visitLogin } from './navigation.flow';
+import { visitLogin } from './navigation.flow';
 
 export function openLogin() {
   visitLogin();
@@ -19,10 +19,4 @@ export function signOut() {
   cy.intercept({ method: 'GET', pathname: '/logout' }).as('logoutRequest');
   headerComponent.clickLogout();
   cy.wait('@logoutRequest');
-}
-
-/** Logged-out state: on the login page with no session indicator in the header. */
-export function expectSignedOutOnLoginPage() {
-  expectCurrentPath(routes.login);
-  headerComponent.expectLoggedOut();
 }

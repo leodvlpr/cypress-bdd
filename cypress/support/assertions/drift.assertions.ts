@@ -1,3 +1,5 @@
+import { DEMO_DRIFT_LOG } from '../drift';
+import { resilienceDemoSelectors } from '../selectors/resilience-demo.selectors';
 import { describeStrategy } from '../selectors/selector';
 import type { DriftEvent } from '../types/drift';
 import type { SelectorDefinition } from '../types/selector';
@@ -16,4 +18,9 @@ export function expectDriftRecorded(logPath: string, definition: SelectorDefinit
     expect(event?.strategyUsed).to.eq(describeStrategy(definition.strategies[strategyIndex]));
     expect(event?.demo).to.eq(definition.demo);
   });
+}
+
+/** The degraded demo logo must have been resolved by its fallback (index 1) and logged to the demo log. */
+export function expectDegradedLogoDriftInDemoLog() {
+  expectDriftRecorded(DEMO_DRIFT_LOG, resilienceDemoSelectors.degradedLogo, 1);
 }

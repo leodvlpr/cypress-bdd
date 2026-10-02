@@ -1,8 +1,9 @@
 import { Given, Then, When } from '@badeball/cypress-cucumber-preprocessor';
+import { expectSignedOutOnLoginPage } from '../assertions/session.assertions';
 import { authComponent } from '../components/auth.component';
 import { headerComponent } from '../components/header.component';
 import { buildUniqueUser } from '../data/user.factory';
-import { expectSignedOutOnLoginPage, openLogin, signIn, signOut } from '../flows/authentication.flow';
+import { openLogin, signIn, signOut } from '../flows/authentication.flow';
 import { requireRegisteredUser, type ScenarioWorld } from '../world';
 
 Given('a registered user with valid credentials', function (this: ScenarioWorld) {

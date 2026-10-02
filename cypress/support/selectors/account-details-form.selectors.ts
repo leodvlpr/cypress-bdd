@@ -4,14 +4,15 @@ import { css, id, paramSelector, qa, role, selector } from './selector';
 const TITLE_RADIO_IDS: Record<AccountProfile['title'], string> = { Mr: 'id_gender1', Mrs: 'id_gender2' };
 
 export const accountDetailsFormSelectors = {
-  // data-qa="title" wraps both radios; the radio itself is picked by its form value (Mr / Mrs).
+  // The radio has no data-qa of its own (requested: title-mr / title-mrs); its app-owned id is the primary.
+  // The data-qa="title" wrapper scoping is kept only as a fallback (ancestor scoping is not allowed as primary).
   titleRadio: (title: AccountProfile['title']) =>
     paramSelector(
       'accountDetailsForm.titleRadio',
       { title },
-      css(`[data-qa="title"] input[value="${title}"]`),
       id(TITLE_RADIO_IDS[title]),
       role('radio', `${title}.`),
+      css(`[data-qa="title"] input[value="${title}"]`),
     ),
   passwordInput: selector('accountDetailsForm.passwordInput', qa('password'), id('password')),
   birthDaySelect: selector('accountDetailsForm.birthDaySelect', qa('days'), id('days')),
