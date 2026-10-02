@@ -15,6 +15,6 @@ export const headerComponent = {
 
   expectLoggedOut() {
     cy.getElement(headerSelectors.loginLink).should('be.visible');
-    return cy.getElement(headerSelectors.sessionIndicator).should('not.exist');
+    return cy.expectAbsent(headerSelectors.sessionIndicator);
   },
 };

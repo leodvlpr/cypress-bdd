@@ -64,28 +64,86 @@ Scenario: 003 [LOGIN] Validate incorrect password shows the invalid credentials 
 
 ### Single point of resolution
 
-Every element lookup goes through **`cy.getElement(definition)`** (`support/commands/selector.commands.ts`).
-Components never call `cy.get`, `cy.contains` or `.find` directly, and only `navigation.flow.ts` calls `cy.visit`
-or `cy.location`. `npm run lint:selectors` enforces this.
+Every element lookup goes through **`cy.getElement(definition)`** (`support/commands/selector.commands.ts`), and
+absence checks through **`cy.expectAbsent(definition)`**. Components never call `cy.get`, `cy.contains` or
+`.find` directly, and only `navigation.flow.ts` calls `cy.visit` or `cy.location`. `npm run lint:selectors`
+enforces this.
 
 A selector definition has a stable logical name and an ordered list of strategies:
 
 ```ts
-export const cartTableSelectors = {
-  row: (productId: number) => selector('cartTable.row', css(`#product-${productId}`)),
-  proceedToCheckoutButton: selector('cartTable.proceedToCheckoutButton', text('Proceed To Checkout', 'a')),
+export const orderReviewSelectors = {
+  placeOrderButton: selector(
+    'orderReview.placeOrderButton',
+    role('link', 'Place Order'), // primary
+    css('a[href="/payment"]'),   // fallback 1
+    text('Place Order', 'a'),    // fallback 2
+  ),
 };
 ```
 
 | Strategy | Builder | Use |
 | --- | --- | --- |
-| `qa` | `qa('login-email')` | `data-qa` attribute: the agreed contract with development. Always preferred. |
-| `css` | `css('#search_product')` | App-owned `id`, `data-*` attribute or form field name, while a `data-qa` is missing. |
-| `text` | `text('Add to cart', 'button')` | Accessible name or visible text, only when that text is the contract under test. |
+| `data-qa` | `qa('login-email')` | `data-qa` attribute: the agreed contract with development. Always primary when it exists. |
+| `id` | `id('search_product')` | App-owned element id. |
+| `css` | `css('a[href="/payment"]')` | Other app-owned attribute (`data-*`, form field `name`, `href`). Never style classes. |
+| `role` | `role('button', 'Add to cart')` | ARIA role + accessible name, for elements with a real role (button, link, heading, img, radio). |
+| `text` | `text('Proceed To Checkout', 'a')` | Visible text, only when that text is the contract under test. |
 
-`getElement` currently resolves the **first** strategy. Fallback to the next strategies, with logging of which
-strategy matched, is the agreed self-healing scope and is added in `getElement` only (Step 4): definitions and
-components do not change.
+Notes on `role`:
+
+- The accessible name is computed from `aria-label`, `alt` (images), `value` (input buttons), the associated
+  `<label>` (radios) or the text content. Icon-font glyphs (CSS `::before`) are ignored.
+- Elements without a real role keep `text` as their only strategy, e.g. `<a>` without `href` such as
+  "Proceed To Checkout" or "Logged in as …".
+
+### Resolution and drift
+
+1. `getElement` checks **every strategy instantly and in order** on each retry, so a broken strategy costs no
+   waiting.
+2. **First strategy matches:** the test continues normally.
+3. **A later strategy matches:** the test continues, the command log shows a `drift` entry, and
+   `cy.task('logDrift')` appends one line to `cypress/.drift/drift-log.ndjson`:
+
+   ```json
+   {"name":"cartTable.quantity","params":{"quantity":1},"label":"cartTable.quantity(quantity=1)","scope":"#product-2",
+    "strategyUsed":"text(/^\\s*1\\s*$/, button)","strategyIndex":1,"primaryStrategy":"role(button, \"1\")",
+    "timestamp":"…","specPath":"cypress/e2e/features/cart.feature","test":"Shopping cart > 009 [CART] Validate …"}
+   ```
+
+   | Field | Meaning |
+   | --- | --- |
+   | `name` | Logical selector name, stable for grouping (`cartTable.quantity`). |
+   | `params` | Arguments of a parameterized definition (`{ "quantity": 1 }`); absent for plain ones. |
+   | `label` | Readable id of the exact instance (`cartTable.quantity(quantity=1)`). |
+   | `scope` | The `.within()` element it was resolved in (`#product-2`); absent at page level. Tells apart instances with identical params, e.g. two cart rows with the same quantity. |
+   | `strategyUsed` / `strategyIndex` / `primaryStrategy` | What matched, its position, and the primary that did not. |
+   | `timestamp` / `specPath` / `test` | When and where it happened. |
+
+4. **No strategy matches** within the command timeout: the test fails with
+   `Element "<name>" not found with any strategy: <all strategies>`. A total failure is never swallowed.
+5. `expectAbsent` passes only when **no** strategy matches, so an element reachable through a fallback is
+   never reported as gone.
+
+The log is emptied at the start of every `cypress run` (`resetDriftLog`, also available as a task), so it only
+reflects the latest run. A clean run produces no file. The `cypress/.drift/` folder is git-ignored.
+
+### Parameterized definitions
+
+Factories build their definitions with `paramSelector`, which records the arguments in `params`:
+
+```ts
+row: (productId: number) => paramSelector('cartTable.row', { productId }, id(`product-${productId}`)),
+```
+
+`npm run lint:selectors` rejects a factory built with plain `selector()`, because its arguments would be missing
+from drift logs.
+
+### Adding a fallback
+
+Only add a fallback after confirming on the real site (Playwright) that it identifies **the same DOM node** as
+the primary strategy. Every fallback in the suite was checked this way. Elements with no second stable hook
+keep a single strategy (e.g. `#cartModal`, `#submit_search`, the cart remove link).
 
 ### Rules
 
@@ -166,6 +224,7 @@ npm run lint:scenarios                                               # scenario 
 npx cypress run --spec cypress/e2e/features/authentication.feature   # reference feature
 npx cypress run --spec "cypress/e2e/features/cart.feature"           # any single feature
 npm run cy:run                                                       # whole suite
+cat cypress/.drift/drift-log.ndjson                                  # drift from the last run (absent = none)
 npm run cy:open                                                      # interactive mode
 ```
 
@@ -173,8 +232,10 @@ Requires internet access to https://automationexercise.com.
 
 ## Self-healing policy
 
-- **Agreed scope:** fallback selectors **with logging** of which strategy was used. The single resolution point
-  (`cy.getElement`) and ordered strategies exist so this can be added without touching components (Step 4).
+- **Agreed scope:** fallback selectors **with logging** of which strategy was used, implemented in
+  `cy.getElement` and recorded in `cypress/.drift/drift-log.ndjson`.
 - **Rejected:** silent auto-repair, meaning code or selectors that rewrite themselves without human review.
-- Any change to selector definitions goes through a PR and CI; nothing is accepted automatically on `main`.
-- Track flakiness rate, fallback usage (drift) and false positives over time.
+- **Handling drift:** a drift event means the primary strategy no longer matches. Someone reviews it and updates
+  the selector definition (or requests the missing `data-qa`) in a PR that goes through CI. Nothing is accepted
+  automatically on `main`.
+- Track flakiness rate, drift events and false positives over time.

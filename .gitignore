@@ -4,3 +4,4 @@ cypress/screenshots/
 cypress/downloads/
 .env
 .playwright-mcp/
+cypress/.drift/

@@ -7,7 +7,7 @@ const SUPPORT_DIR = 'cypress/support';
 const RULES = [
   { pattern: /\bcy\.get\((?!\s*['"`]@)/, allowedIn: ['commands/selector.commands.ts'], hint: 'use cy.getElement(definition)' },
   { pattern: /\.contains\(/, allowedIn: ['commands/selector.commands.ts'], hint: 'use cy.getElement with a text() strategy' },
-  { pattern: /(\)|^\s*)\.find\(/, allowedIn: [], hint: 'scope with .within() and cy.getElement' },
+  { pattern: /(\)|^\s*)\.find\(/, allowedIn: ['commands/selector.commands.ts'], hint: 'scope with .within() and cy.getElement' },
   { pattern: /\bcy\.getByQa\(/, allowedIn: [], hint: 'cy.getByQa was replaced by cy.getElement' },
   { pattern: /\bcy\.(visit|location)\(/, allowedIn: ['flows/navigation.flow.ts'], hint: 'use the navigation flow' },
 ];
@@ -26,6 +26,14 @@ for (const file of files) {
         }
       }
     });
+}
+
+// A factory built with selector() would drop its arguments from drift logs.
+for (const file of files.filter((f) => f.startsWith('selectors/') && f.endsWith('.selectors.ts'))) {
+  const source = readFileSync(join(SUPPORT_DIR, file), 'utf8');
+  for (const match of source.matchAll(/(\w+):\s*\([^)]*\)\s*=>\s*selector\(/g)) {
+    errors.push(`${SUPPORT_DIR}/${file} factory "${match[1]}" uses selector() → use paramSelector() so params reach drift logs`);
+  }
 }
 
 if (errors.length > 0) {

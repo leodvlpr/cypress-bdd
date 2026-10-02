@@ -18,7 +18,7 @@ export const cartTableComponent = {
   },
 
   expectProductAbsent(product: Product) {
-    return cy.getElement(s.row(product.id)).should('not.exist');
+    return cy.expectAbsent(s.row(product.id));
   },
 
   expectEmpty() {
