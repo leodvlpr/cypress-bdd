@@ -350,6 +350,12 @@ scripts/                   # Lint checks, drift report, weekly email report
 - **It runs against a live public site.** If automationexercise.com changes or goes down, the suite fails or
   drifts. Third-party consent and ad scripts are blocked through `blockHosts`, because they overlay the page
   unpredictably.
+- **The site has bot protection that can block CI.** After many runs from GitHub-hosted runners in a short
+  time, it can serve an interstitial ("Please wait while your request is being verified…", `failedChecks=webdriverCheck`)
+  instead of the store. The whole suite then fails at once, and the API seeding fails with a JSON parse error
+  because the API returns that HTML page. This happened once during development: on 2026-10-02, after about ten
+  CI runs in an hour. It is an environment failure, not a selector problem: no drift is logged, because no
+  strategy for any element can match.
 - **The tests write real data.** Each scenario creates (and deletes) an account through the store's API, and the
   checkout scenario places a fake-payment order that cannot be deleted.
 - **Some elements can only be matched by text.** The site has no `data-qa` on several of them; the needed hooks
