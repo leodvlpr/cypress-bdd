@@ -353,6 +353,7 @@ The review prompt checks the conventions documented here:
 - scenario naming;
 - determinism rules;
 - the resilience policy;
+- configuration only through `.env` / `appConfig()`, with no hard-coded app values and every key in `.env.example`;
 - English only.
 
 **Keep this document current:** the reviewer is only as accurate as this document. Change the conventions here
