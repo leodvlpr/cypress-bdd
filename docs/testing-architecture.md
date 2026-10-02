@@ -127,7 +127,7 @@ Notes on `role`:
    never reported as gone.
 
 The log is emptied at the start of every `cypress run` (`resetDriftLog`, also available as a task), so it only
-reflects the latest run. A clean run produces no file. The `cypress/.drift/` folder is git-ignored.
+reflects the latest run. An **empty** file means a clean run: no drift. The `cypress/.drift/` folder is git-ignored.
 
 ### Parameterized definitions
 
@@ -244,12 +244,31 @@ npx cypress run --spec cypress/e2e/features/authentication.feature   # reference
 npx cypress run --spec "cypress/e2e/features/cart.feature"           # any single feature
 npm run cy:run                                                       # whole suite (excludes @demo)
 npm run cy:demo                                                      # only @demo scenarios (resilience demo)
-cat cypress/.drift/drift-log.ndjson                                  # real drift from the last cy:run (absent = none)
+cat cypress/.drift/drift-log.ndjson                                  # real drift from the last cy:run (empty = none)
 cat cypress/.drift/demo-drift-log.ndjson                             # demo drift from the last cy:demo
 npm run cy:open                                                      # interactive mode
 ```
 
 Requires internet access to https://automationexercise.com.
+
+## Continuous integration
+
+`.github/workflows/ci.yml` runs on every push and pull request to `main`, on `ubuntu-latest` with Node 22:
+
+1. `npm ci`
+2. `npm run lint:scenarios`: scenario names and IDs.
+3. `npm run lint:selectors`: every lookup goes through `cy.getElement`.
+4. `npm run typecheck`
+5. `npm run cy:run`: the main suite. `@demo` scenarios are excluded by `env.tags = 'not @demo'`.
+
+Artifacts:
+
+| Artifact | When | Retention | Content |
+| --- | --- | --- | --- |
+| `cypress-artifacts` | On failure | 7 days | `cypress/screenshots`, `cypress/videos` |
+| `drift-log` | Always | 30 days | `cypress/.drift/drift-log.ndjson`; empty when no selector drifted |
+
+The resilience demo (`npm run cy:demo`) is not part of CI.
 
 ## Self-healing policy
 

@@ -1,4 +1,4 @@
-import { appendFileSync, mkdirSync, rmSync } from 'node:fs';
+import { appendFileSync, mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { defineConfig } from 'cypress';
 import createBundler from '@bahmutov/cypress-esbuild-preprocessor';
@@ -32,8 +32,10 @@ export default defineConfig({
       // Drift logs: one JSON line per element resolved by a non-primary selector strategy.
       // Demo definitions write to their own file so they never mix with the real drift signal.
       const logPath = (demo?: boolean) => path.join(config.projectRoot, demo ? DEMO_DRIFT_LOG : DRIFT_LOG);
+      // Reset leaves an empty file rather than none, so "exists and empty" means a clean run.
       const resetDriftLog = ({ demo }: { demo?: boolean } = {}) => {
-        rmSync(logPath(demo), { force: true });
+        mkdirSync(path.dirname(logPath(demo)), { recursive: true });
+        writeFileSync(logPath(demo), '');
         return null;
       };
       on('task', {
