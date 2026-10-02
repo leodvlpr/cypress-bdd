@@ -1,0 +1,55 @@
+name: Cypress BDD Suite
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint scenario names
+        run: npm run lint:scenarios
+
+      - name: Lint selector usage
+        run: npm run lint:selectors
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      # Runs the main suite only: @demo scenarios are excluded by cypress.config.ts (env.tags = 'not @demo').
+      - name: Run Cypress suite
+        run: npm run cy:run
+
+      - name: Upload Cypress artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cypress-artifacts
+          path: |
+            cypress/screenshots
+            cypress/videos
+          retention-days: 7
+          if-no-files-found: ignore
+
+      # Always present after a run: empty means no selector drift.
+      - name: Upload drift log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: drift-log
+          path: cypress/.drift/drift-log.ndjson
+          retention-days: 30
+          if-no-files-found: ignore

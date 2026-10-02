@@ -1,0 +1,108 @@
+name: Claude Code PR Review
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, closed]
+
+jobs:
+  # 1) Code review on every PR opened/updated against main.
+  review:
+    if: github.event.action != 'closed'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    # A new push supersedes a review still in progress for the same PR.
+    concurrency:
+      group: pr-review-${{ github.event.pull_request.number }}
+      cancel-in-progress: true
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Claude Code — review this PR
+        uses: anthropics/claude-code-action@v1
+        # The action forwards env.ANTHROPIC_BASE_URL to Claude Code (custom Anthropic-compatible endpoint).
+        env:
+          ANTHROPIC_BASE_URL: ${{ secrets.ANTHROPIC_BASE_URL }}
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          github_token: ${{ github.token }}
+          prompt: |
+            REPO: ${{ github.repository }}
+            PR NUMBER: ${{ github.event.pull_request.number }}
+            BASE: ${{ github.event.pull_request.base.ref }}  HEAD: ${{ github.event.pull_request.head.ref }}
+
+            Review the changes in this pull request against this repository's documented architecture
+            conventions in docs/testing-architecture.md. Read that file first and ground every finding in it,
+            citing the section it violates. Review only what this PR changes (`gh pr diff`).
+
+            Check specifically:
+            - Component-based architecture, NOT Page Object Model: flag any new or changed component that
+              mirrors a full page/screen instead of a reusable UI piece, or that calls `cy.visit`.
+            - All element lookups must go through the centralized resolver: `cy.getElement(definition)` /
+              `cy.expectAbsent(definition)`. Flag `cy.get`, `cy.contains` or `.find` outside
+              `cypress/support/commands/selector.commands.ts`, and `cy.visit` / `cy.location` outside
+              `cypress/support/flows/navigation.flow.ts`.
+            - Selector definitions live in `cypress/support/selectors/`, one file per UI piece, with a logical
+              `<piece>.<element>` name and ordered strategies: `data-qa` first when it exists; never style
+              classes, XPath, DOM structure or `:nth-child`; text only when it is the contract under test.
+              Factories must use `paramSelector`. New fallbacks must target the same DOM node as the primary;
+              ask for evidence if that is not shown.
+            - Layering: step definitions stay thin (no selectors, no `cy.*` lookups) and use domain language;
+              flows compose components and contain no scenario-specific assertions.
+            - Scenarios: titled `<ID> [COMPONENT] Validate <main assertion>` with a unique, next free ID;
+              Given/When/Then describe user-facing behaviour, not implementation.
+            - Determinism and hygiene: no `cy.wait(<ms>)`, `force: true`, `.only`, hard-coded credentials or
+              secrets in logs; intercepts declared before the triggering action.
+            - Resilience policy: `demoSelector` only in `@demo` scenarios; no silent auto-repair of selectors.
+            - Everything (code, Gherkin, docs) in English; docs updated when behaviour changes.
+
+            How to respond:
+            - Use inline comments for specific, actionable issues (file + line, what is wrong, which convention).
+            - Then post ONE top-level comment with `gh pr comment` containing: a verdict (✅ Follows conventions /
+              ⚠️ Minor issues / ❌ Convention violations), a short list of findings by severity, and what is solid.
+            - Do not nitpick formatting or style the conventions do not cover. If nothing violates the
+              conventions, say so plainly instead of inventing issues.
+          claude_args: |
+            --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*)"
+
+  # 2) Short wrap-up on every PR merged into main.
+  merge-wrap-up:
+    if: github.event.action == 'closed' && github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.merge_commit_sha }}
+          fetch-depth: 0
+
+      - name: Claude Code — post-merge convention check
+        uses: anthropics/claude-code-action@v1
+        # The action forwards env.ANTHROPIC_BASE_URL to Claude Code (custom Anthropic-compatible endpoint).
+        env:
+          ANTHROPIC_BASE_URL: ${{ secrets.ANTHROPIC_BASE_URL }}
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          github_token: ${{ github.token }}
+          prompt: |
+            REPO: ${{ github.repository }}
+            PR NUMBER: ${{ github.event.pull_request.number }} (merged into main as ${{ github.event.pull_request.merge_commit_sha }})
+
+            This pull request has just been merged into main. Check whether the merged changes (`gh pr diff`)
+            introduced drift from the conventions in docs/testing-architecture.md: component-based (no Page
+            Objects), all lookups through `cy.getElement` / `cy.expectAbsent`, selector definitions with ordered
+            strategies and `paramSelector` for factories, thin step definitions, `<ID> [COMPONENT] Validate …`
+            scenario titles, English only, docs kept in sync.
+
+            Post ONE short comment on the PR with `gh pr comment` (at most ~8 lines):
+            - First line: `✅ Merged without convention drift` or `⚠️ Merged with convention drift`.
+            - If there is drift: each item in one line (file, convention, suggested follow-up).
+            - Do not repeat the full review; this is a wrap-up.
+          claude_args: |
+            --allowedTools "Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*)"

@@ -1,0 +1,20 @@
+[
+  {
+    "id": 1,
+    "name": "Blue Top",
+    "price": 500,
+    "category": "Women > Tops",
+    "brand": "Polo",
+    "availability": "In Stock",
+    "condition": "New"
+  },
+  {
+    "id": 2,
+    "name": "Men Tshirt",
+    "price": 400,
+    "category": "Men > Tshirts",
+    "brand": "H&M",
+    "availability": "In Stock",
+    "condition": "New"
+  }
+]
