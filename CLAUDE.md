@@ -117,7 +117,8 @@ Verify on the live site, with Playwright, that the fallback resolves to **the sa
 
 ## CI (`.github/workflows/`)
 
-- **`ci.yml`:** runs on push/PR to `main`: lints, typecheck, `cy:run`. It uploads the drift log on every run.
+- **`ci.yml`:** runs on push/PR to `main`: `cp .env.example .env`, lints, typecheck, `cy:run`. It uploads the drift
+  log on every run.
 - **`weekly-report.yml`:** Monday 08:00 UTC, or `workflow_dispatch`. It runs the suite and emails
   `scripts/weekly-report.mjs` output via Gmail (secrets `GMAIL_USERNAME`, `GMAIL_APP_PASSWORD`).
   - The suite step uses `shell: bash`, so `pipefail` keeps `tee` from masking failures.

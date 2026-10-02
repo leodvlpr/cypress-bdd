@@ -71,10 +71,12 @@ feature  →  step definition  →  flow  →  component  →  selector definiti
 | **Component** | One UI piece. Plain objects of functions, not classes. |
 | **Selector definition** | A named, ordered list of strategies per element. |
 | **Resolver** (`cy.getElement`) | The single place where the DOM is queried. |
+| **Configuration** (`appConfig()`) | Target URL, test-id attribute and test data, from `.env`. |
 
 Two custom lint scripts keep this honest in CI:
-- `lint:selectors` fails the build if any file outside the resolver calls `cy.get`, `cy.contains` or `.find`, or
-  if `cy.visit` / `cy.location` are used outside the navigation flow.
+- `lint:selectors` fails the build if any file outside the resolver calls `cy.get`, `cy.contains` or `.find`, if
+  `cy.visit` / `cy.location` are used outside the navigation flow, or if `Cypress.env` is read outside
+  `appConfig()`.
 - `lint:scenarios` enforces the scenario-naming convention.
 
 ## BDD with Cucumber
@@ -200,7 +202,7 @@ Three GitHub Actions workflows live in [`.github/workflows/`](.github/workflows)
 
 | Workflow | Trigger | What it does |
 | --- | --- | --- |
-| [`ci.yml`](.github/workflows/ci.yml) | Push / PR to `main` | `npm ci` → `lint:scenarios` → `lint:selectors` → `typecheck` → `cy:run` (main suite only). It uploads screenshots/videos on failure, and the drift log on every run. |
+| [`ci.yml`](.github/workflows/ci.yml) | Push / PR to `main` | `npm ci` → `.env` from the template → `lint:scenarios` → `lint:selectors` → `typecheck` → `cy:run` (main suite only). It uploads screenshots/videos on failure, and the drift log on every run. |
 | [`weekly-report.yml`](.github/workflows/weekly-report.yml) | Mondays 08:00 UTC, or manually | Runs the suite and emails a report. |
 | [`pr-review.yml`](.github/workflows/pr-review.yml) | PR to `main` opened/updated, and on merge | Claude Code reviews the PR, then posts a post-merge summary. |
 
@@ -337,12 +339,15 @@ Run a single feature with `npx cypress run --spec cypress/e2e/features/cart.feat
 ## Project structure
 
 ```text
+.env.example               # Every configuration key, documented; copy to .env (git-ignored)
 cypress/
+  config/                  # Node-side config loader: reads .env + environment, validates, fails fast
   e2e/features/            # Gherkin features (one per business area + the @demo resilience scenario)
   fixtures/                # Reference product catalog
   support/
     assertions/            # Cross-component end-state checks (signed out, drift logged)
     commands/              # cy.getElement / cy.expectAbsent resolver, API seeding commands
+    config.ts              # appConfig(): the only way specs read configuration
     components/            # One reusable UI piece per file
     data/                  # Unique per-scenario test data factories
     flows/                 # Business intents; navigation.flow.ts owns routes and cy.visit

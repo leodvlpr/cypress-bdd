@@ -60,6 +60,7 @@ export function loadAppConfig(projectRoot: string): AppConfig {
     },
     contact: {
       name: required('CONTACT_NAME'),
+      emailPrefix: required('CONTACT_EMAIL_PREFIX'),
       emailDomain: required('CONTACT_EMAIL_DOMAIN'),
     },
     payment: {

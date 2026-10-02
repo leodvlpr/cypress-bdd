@@ -21,6 +21,8 @@ export interface AppConfig {
   };
   contact: {
     name: string;
+    /** Contact emails get `<emailPrefix>.<unique id>@<emailDomain>`. */
+    emailPrefix: string;
     emailDomain: string;
   };
   /** Test payment card. Never a real card. */

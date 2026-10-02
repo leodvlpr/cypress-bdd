@@ -20,6 +20,7 @@ feature (.feature)  →  step definition  →  flow  →  component  →  select
 | Selector | `cypress/support/selectors/` | One file per UI piece with named selector definitions (ordered strategies). No Cypress logic. |
 | Command | `cypress/support/commands/` | `cy.getElement` (the single selector resolver) and API seeding. Typed in `support/types/cypress.d.ts`. |
 | Data | `cypress/support/data/`, `cypress/fixtures/` | Factories for unique per-scenario data and the reference product catalog. |
+| Configuration | `.env` / `.env.example`, `cypress/config/load-config.ts`, `cypress/support/config.ts` | Target app and test data (URL, test-id attribute, users, card, catalog). Validated before the run; read in specs only through `appConfig()`. |
 | Context | `cypress/support/world.ts`, `step_definitions/hooks.ts` | Per-scenario state (`this`) and cleanup after every scenario. |
 
 ## Current coverage
@@ -297,10 +298,11 @@ Requires internet access to https://automationexercise.com.
 `.github/workflows/ci.yml` runs on every push and pull request to `main`, on `ubuntu-latest` with Node 22:
 
 1. `npm ci`
-2. `npm run lint:scenarios`: scenario names and IDs.
-3. `npm run lint:selectors`: every lookup goes through `cy.getElement`.
-4. `npm run typecheck`
-5. `npm run cy:run`: the main suite. `@demo` scenarios are excluded by `env.tags = 'not @demo'`.
+2. `cp .env.example .env`: CI tests the target described by the template.
+3. `npm run lint:scenarios`: scenario names and IDs.
+4. `npm run lint:selectors`: every lookup goes through `cy.getElement`, and configuration through `appConfig()`.
+5. `npm run typecheck`
+6. `npm run cy:run`: the main suite. `@demo` scenarios are excluded by `env.tags = 'not @demo'`.
 
 Artifacts:
 
@@ -317,7 +319,7 @@ The resilience demo (`npm run cy:demo`) is not part of CI.
 `gh workflow run weekly-report.yml`. It emails a report to `GMAIL_USERNAME` (repository secrets `GMAIL_USERNAME`
 and `GMAIL_APP_PASSWORD`, a Gmail app password).
 
-1. `npm run cy:run`, tee'd to `cypress-output.log`. It has `continue-on-error`, so the email is always sent, and
+1. `cp .env.example .env`, then `npm run cy:run`, tee'd to `cypress-output.log`. It has `continue-on-error`, so the email is always sent, and
    `shell: bash` (pipefail), so a failure is not masked by `tee`.
 2. `npm run drift:report`: `scripts/drift-report.mjs` turns `drift-log.ndjson` into `cypress/.drift/summary.md`,
    with one row per selector instance and scope.
