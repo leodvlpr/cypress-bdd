@@ -62,6 +62,32 @@ Scenario: 003 [LOGIN] Validate incorrect password shows the invalid credentials 
 
 `npm run lint:scenarios` checks the format, duplicate IDs and components, and prints the next free ID.
 
+## Configuration (`.env`)
+
+Everything that depends on the target application or its test data lives in **`.env`**, not in code. That covers:
+- the base URL;
+- the test-id attribute;
+- the blocked third-party hosts;
+- the generated-user profile and an optional fixed password;
+- the contact data;
+- the test payment card;
+- the reference product catalog.
+
+How it works:
+- **Template:** `.env.example` is versioned and documents every key. `.env` is git-ignored: create it with
+  `cp .env.example .env`.
+- **Loading:** `cypress/config/load-config.ts` builds a typed `AppConfig` on the Node side. A **non-empty
+  environment variable overrides** the `.env` value, so CI or a shell can change single keys. An empty variable
+  does not mask the file.
+- **Validation:** missing required keys, an invalid `BASE_URL` / `TEST_USER_TITLE` and a missing or malformed
+  `CATALOG_FIXTURE` stop the run before Cypress starts, with the full list of problems.
+- **Access in specs:** `cypress.config.ts` injects the config as `env.app`, and specs read it **only** through
+  `appConfig()` (`cypress/support/config.ts`). `lint:selectors` rejects `Cypress.env(` anywhere else.
+- **In CI:** both workflows run `cp .env.example .env`, so they test the target described by the template.
+  Override single values with environment variables in the workflow if needed.
+- **Retargeting:** edit `.env` for a new URL, test-id attribute or data set. Selectors, components and flows
+  still describe the current app and need their own refactor.
+
 ## Selector convention
 
 ### Single point of resolution
@@ -86,7 +112,7 @@ export const orderReviewSelectors = {
 
 | Strategy | Builder | Use |
 | --- | --- | --- |
-| `data-qa` | `qa('login-email')` | `data-qa` attribute: the agreed contract with development. Always primary when it exists. |
+| `test-id` | `testId('login-email')` | The test-id attribute agreed with development; its name comes from `TEST_ID_ATTRIBUTE` (`data-qa` on this app). Always primary when it exists. |
 | `id` | `id('search_product')` | App-owned element id. |
 | `css` | `css('a[href="/payment"]')` | Other app-owned attribute (`data-*`, form field `name`, `href`). Never style classes. |
 | `role` | `role('button', 'Add to cart')` | ARIA role + accessible name, for elements with a real role (button, link, heading, img, radio). |
@@ -145,7 +171,7 @@ from drift logs.
 
 `resilience-demo.feature` (`013 [RESILIENCE]`) exists **only to demonstrate the fallback + drift mechanism**.
 
-- **Deliberately degraded selector:** `resilienceDemo.degradedLogo` has a primary `data-qa` that does not exist
+- **Deliberately degraded selector:** `resilienceDemo.degradedLogo` has a primary `testId` that does not exist
   on the site, so resolution always falls back to the logo's verified `role(img, …)` strategy.
 - **Self-checking:** the scenario asserts both that the logo is still found and that the drift event was
   written, with the expected strategy index, primary and fallback.
@@ -168,7 +194,8 @@ keep a single strategy (e.g. `#cartModal`, `#submit_search`, the cart remove lin
 
 ### Rules
 
-- The app already uses **`data-qa`** (`login-email`, `login-password`, `login-button`, …), so it is the preferred
+- The test-id attribute is configured with `TEST_ID_ATTRIBUTE`. This app already uses **`data-qa`** (`login-email`,
+  `login-password`, `login-button`, …), so `testId(...)` is the preferred
   strategy. Neither `data-testid` nor `data-cy` is introduced.
 - Forbidden: XPath, style classes, DOM structure, indexes (`:nth-child`) or text as the primary selector.
 - **Narrow exception, fallbacks only:** a fallback may be scoped by an app-owned attribute of an ancestor when the

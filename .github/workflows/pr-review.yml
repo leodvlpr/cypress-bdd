@@ -47,7 +47,8 @@ jobs:
               `cypress/support/commands/selector.commands.ts`, and `cy.visit` / `cy.location` outside
               `cypress/support/flows/navigation.flow.ts`.
             - Selector definitions live in `cypress/support/selectors/`, one file per UI piece, with a logical
-              `<piece>.<element>` name and ordered strategies: `data-qa` first when it exists; never style
+              `<piece>.<element>` name and ordered strategies: the test id (`testId`, attribute from
+              TEST_ID_ATTRIBUTE) first when it exists; never style
               classes, XPath, DOM structure or `:nth-child`; text only when it is the contract under test.
               Factories must use `paramSelector`. New fallbacks must target the same DOM node as the primary;
               ask for evidence if that is not shown.
@@ -58,6 +59,9 @@ jobs:
             - Determinism and hygiene: no `cy.wait(<ms>)`, `force: true`, `.only`, hard-coded credentials or
               secrets in logs; intercepts declared before the triggering action.
             - Resilience policy: `demoSelector` only in `@demo` scenarios; no silent auto-repair of selectors.
+            - Configuration: target URL, test-id attribute, test data and credentials come from .env /
+              `appConfig()` (keys documented in .env.example); flag hard-coded app-specific values or new
+              keys missing from .env.example.
             - Everything (code, Gherkin, docs) in English; docs updated when behaviour changes.
 
             How to respond:

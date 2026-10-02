@@ -123,10 +123,10 @@ placeOrderButton: selector(
 ),
 ```
 
-**Strategy types.** `data-qa` is always primary when the element has one. The others are chosen per element, by
+**Strategy types.** The test id is always primary when the element has one. The others are chosen per element, by
 what the site actually offers:
 
-- `data-qa`: the site's own test attribute.
+- `testId`: the test-id attribute agreed with development, configured with `TEST_ID_ATTRIBUTE` (`data-qa` here).
 - `id`: an app-owned element id.
 - `css`: other app-owned attributes (`data-*`, `name`, `href`), never style classes.
 - `role`: ARIA role + accessible name.
@@ -179,7 +179,7 @@ the suite trustworthy.
 ### Living proof: the `@demo` scenario
 
 [`resilience-demo.feature`](cypress/e2e/features/resilience-demo.feature) (`013 [RESILIENCE]`) uses a
-**deliberately degraded** logo selector: its primary `data-qa` does not exist, so it always falls back to the
+**deliberately degraded** logo selector: its primary `testId` does not exist, so it always falls back to the
 verified `role(img, …)` strategy. The scenario asserts both that the logo is still found and that the drift event
 was written correctly.
 
@@ -307,7 +307,19 @@ behaviour.
 git clone https://github.com/leodvlpr/cypress-bdd.git
 cd cypress-bdd
 npm ci
+cp .env.example .env   # target URL, test-id attribute and test data (see below)
 ```
+
+**Configuration.** `.env` holds everything that depends on the target app:
+- the base URL and test-id attribute;
+- the blocked third-party hosts;
+- the generated-user profile and an optional fixed password;
+- the contact data and the test payment card;
+- the product catalog file.
+
+Every key is documented in [`.env.example`](.env.example), and a non-empty environment variable overrides it.
+Missing or invalid values stop the run before Cypress starts. Pointing the suite at another URL or data set is a
+`.env` change. See [Configuration](docs/testing-architecture.md#configuration-env).
 
 | Command | What it does |
 | --- | --- |

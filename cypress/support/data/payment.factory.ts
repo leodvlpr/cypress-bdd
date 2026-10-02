@@ -1,12 +1,14 @@
+import { appConfig } from '../config';
 import type { PaymentCard } from '../types/checkout';
 
-/** The store does not process payments; 4111 1111 1111 1111 is the public Visa test number. */
+/** Test card from .env (PAYMENT_CARD_*). It must be a test number; the stores under test never charge it. */
 export function buildTestCard(nameOnCard: string): PaymentCard {
+  const { cardNumber, cvc, expiryMonth, expiryYear } = appConfig().payment;
   return {
     nameOnCard,
-    number: '4111111111111111',
-    cvc: '123',
-    expiryMonth: '12',
-    expiryYear: String(new Date().getFullYear() + 5),
+    number: cardNumber,
+    cvc,
+    expiryMonth,
+    expiryYear: expiryYear ?? String(new Date().getFullYear() + 5),
   };
 }

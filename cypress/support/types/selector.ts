@@ -1,10 +1,10 @@
 /** How an element can be located. A definition lists them from most to least preferred. */
 export type SelectorStrategy =
-  /** `data-qa` attribute: the agreed test-id contract with development. */
-  | { type: 'data-qa'; value: string }
+  /** Test-id attribute agreed with development; the attribute name comes from TEST_ID_ATTRIBUTE. */
+  | { type: 'test-id'; value: string }
   /** App-owned element id. */
   | { type: 'id'; value: string }
-  /** Other app-owned attribute (data-*, form field name, href), used while a data-qa is missing. */
+  /** Other app-owned attribute (data-*, form field name, href), used while a test id is missing. */
   | { type: 'css'; value: string }
   /** ARIA role + accessible name, for elements with a real role (buttons, links, headings…). */
   | { type: 'role'; value: { role: AriaRole; name: string } }
