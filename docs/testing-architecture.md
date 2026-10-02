@@ -293,7 +293,8 @@ and `GMAIL_APP_PASSWORD`, a Gmail app password).
 
 ### Automated PR review (Claude Code)
 
-`.github/workflows/pr-review.yml` uses `anthropics/claude-code-action@v1` (repository secret `ANTHROPIC_API_KEY`).
+`.github/workflows/pr-review.yml` uses `anthropics/claude-code-action@v1` (repository secrets `ANTHROPIC_API_KEY` and
+`ANTHROPIC_BASE_URL`; the base URL is passed as step `env`, which the action forwards to Claude Code).
 It has two moments:
 
 | Job | Trigger | What it does |

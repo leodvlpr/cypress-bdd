@@ -24,6 +24,9 @@ jobs:
 
       - name: Claude Code — review this PR
         uses: anthropics/claude-code-action@v1
+        # The action forwards env.ANTHROPIC_BASE_URL to Claude Code (custom Anthropic-compatible endpoint).
+        env:
+          ANTHROPIC_BASE_URL: ${{ secrets.ANTHROPIC_BASE_URL }}
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           github_token: ${{ github.token }}
@@ -81,6 +84,9 @@ jobs:
 
       - name: Claude Code — post-merge convention check
         uses: anthropics/claude-code-action@v1
+        # The action forwards env.ANTHROPIC_BASE_URL to Claude Code (custom Anthropic-compatible endpoint).
+        env:
+          ANTHROPIC_BASE_URL: ${{ secrets.ANTHROPIC_BASE_URL }}
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           github_token: ${{ github.token }}
