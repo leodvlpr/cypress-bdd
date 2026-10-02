@@ -6,6 +6,8 @@ const TITLE_RADIO_IDS: Record<AccountProfile['title'], string> = { Mr: 'id_gende
 export const accountDetailsFormSelectors = {
   // The radio has no data-qa of its own (requested: title-mr / title-mrs); its app-owned id is the primary.
   // The data-qa="title" wrapper scoping is kept only as a fallback (ancestor scoping is not allowed as primary).
+  // It is pinned to this site's `data-qa` on purpose: like every selector definition it describes the current app,
+  // so it does not follow TEST_ID_ATTRIBUTE and is rewritten when the suite is retargeted.
   titleRadio: (title: AccountProfile['title']) =>
     paramSelector(
       'accountDetailsForm.titleRadio',

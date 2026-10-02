@@ -242,18 +242,22 @@ keep a single strategy (e.g. `#cartModal`, `#submit_search`, the cart remove lin
 
 ## Test data
 
-- Each scenario creates its own user with `buildUniqueUser()` (unique email + random password) through
-  `cy.createAccountByApi()` against the public `POST /api/createAccount` endpoint.
+- Each scenario creates its own user with `buildUniqueUser()` through `cy.createAccountByApi()`, against the
+  public `POST /api/createAccount` endpoint.
+  - The email is unique: `TEST_USER_EMAIL_PREFIX` + a unique id + `TEST_USER_EMAIL_DOMAIN`.
+  - The profile comes from `TEST_USER_*`.
+  - The password is random per scenario unless `TEST_USER_PASSWORD` is set.
 - The `After` hook deletes it with `cy.deleteAccountByApi()` (`DELETE /api/deleteAccount`), so runs are
   idempotent and parallel-safe.
 - Scenario state is shared through the preprocessor context (`this`) and cleared after every scenario.
 - There are no real credentials in the repository. Passwords are never written to the Cypress log
   (`log: false`, `failOnStatusCode: false`).
-- The reference catalog (`cypress/fixtures/products.json`) mirrors stable products of the demo store (checked
-  against `GET /api/productsList`). Features refer to products by name and `findProduct()` fails listing the
+- The reference catalog is the JSON file named by `CATALOG_FIXTURE` (`cypress/fixtures/products.json` for this
+  store). It mirrors stable products of the demo store (checked against `GET /api/productsList`). Features refer to products by name and `findProduct()` fails listing the
   known products when the name does not exist.
 - Gherkin tables are converted to types (`parseCartTable`) and an invalid row fails naming the row and column.
-- Payment uses the public test card 4111 1111 1111 1111; the store does not process real payments.
+- Payment uses the test card from `PAYMENT_CARD_*` (here the public test number 4111 1111 1111 1111). The store
+  does not process real payments, and the value must never be a real card.
 - `cy.loginByApi` / `cy.setAuthSession` are **not** implemented: `POST /api/verifyLogin` only validates
   credentials and issues no session cookie, so login goes through the UI.
 
@@ -271,7 +275,8 @@ keep a single strategy (e.g. `#cartModal`, `#submit_search`, the cart remove lin
 ## Running locally
 
 ```bash
-npm install
+npm ci
+cp .env.example .env                                                 # required: target app + test data config
 npm run typecheck
 npm run lint                                                         # scenario names + selector usage
 npm run lint:scenarios                                               # scenario names + next free ID

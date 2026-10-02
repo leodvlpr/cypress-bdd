@@ -46,7 +46,7 @@ All paths below are under `cypress/support/`.
   event logged).
 - **`selectors/`**: one `*.selectors.ts` per UI piece. Each element is
   `selector('<piece>.<element>', ...strategies)`, with strategies ordered by preference. The builders are
-  `qa`, `id`, `css`, `role` and `text`, in `selectors/selector.ts`.
+  `testId`, `id`, `css`, `role` and `text`, in `selectors/selector.ts`.
   - Factories **must** use `paramSelector(name, { params }, ...)`, so drift logs can tell instances apart.
     `lint:selectors` rejects plain `selector()` in a factory.
   - `testId(...)` is always primary when the element has one. The attribute comes from `TEST_ID_ATTRIBUTE`
