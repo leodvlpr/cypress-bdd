@@ -40,7 +40,7 @@ function summarise() {
     '| --- | --- | --- | --- | --- | --- |',
     ...rows,
     '',
-    'Review each one and update the selector definition (or request the missing `data-qa`) in a PR.',
+    'Review each one and update the selector definition (or request the missing test id) in a PR.',
   ].join('\n');
 }
 

@@ -11,6 +11,7 @@ that doc in the same PR.
 
 ```bash
 npm ci
+cp .env.example .env              # required: target URL, test-id attribute, test data (see Configuration)
 npm run typecheck                 # tsc --noEmit
 npm run lint                      # lint:scenarios + lint:selectors (both run in CI)
 npm run lint:scenarios            # scenario title/ID format; prints the next free ID
@@ -45,10 +46,11 @@ All paths below are under `cypress/support/`.
   event logged).
 - **`selectors/`**: one `*.selectors.ts` per UI piece. Each element is
   `selector('<piece>.<element>', ...strategies)`, with strategies ordered by preference. The builders are
-  `qa`, `id`, `css`, `role` and `text`, in `selectors/selector.ts`.
+  `testId`, `id`, `css`, `role` and `text`, in `selectors/selector.ts`.
   - Factories **must** use `paramSelector(name, { params }, ...)`, so drift logs can tell instances apart.
     `lint:selectors` rejects plain `selector()` in a factory.
-  - `data-qa` (the site's own test attribute) is always primary when it exists. Never use style classes, XPath,
+  - `testId(...)` is always primary when the element has one. The attribute comes from `TEST_ID_ATTRIBUTE`
+    (`data-qa` on this site). Never use style classes, XPath,
     DOM structure or `:nth-child`.
   - `text` is only for contract text: messages, product data, and `<a>` elements without `href`, which have no
     link role. Only in those cases may `text` be the primary strategy.
@@ -64,6 +66,17 @@ All paths below are under `cypress/support/`.
   scenario (`data/user.factory.ts`). The store API **always returns HTTP 200 with JSON in a text/html body**, so
   the real result is the body's `responseCode`. Passwords are never logged (`log: false`,
   `failOnStatusCode: false`).
+
+### Configuration (`.env`)
+
+- **No app-specific values in code.** The URL, test-id attribute, blocked hosts, user profile, contact data,
+  test card and catalog file come from `.env`. Every key is documented in `.env.example`, and `.env` is
+  git-ignored.
+- **Loading:** `cypress/config/load-config.ts` validates the config and fails before Cypress starts, listing
+  missing or invalid keys. A non-empty environment variable overrides `.env`.
+- **Access:** specs read it only through `appConfig()` (`cypress/support/config.ts`); `lint:selectors`
+  rejects `Cypress.env(` elsewhere.
+- **New keys:** add them to `AppConfig`, the loader and `.env.example`.
 
 ### Drift logging (`cypress.config.ts`)
 
@@ -104,7 +117,8 @@ Verify on the live site, with Playwright, that the fallback resolves to **the sa
 
 ## CI (`.github/workflows/`)
 
-- **`ci.yml`:** runs on push/PR to `main`: lints, typecheck, `cy:run`. It uploads the drift log on every run.
+- **`ci.yml`:** runs on push/PR to `main`: `cp .env.example .env`, lints, typecheck, `cy:run`. It uploads the drift
+  log on every run.
 - **`weekly-report.yml`:** Monday 08:00 UTC, or `workflow_dispatch`. It runs the suite and emails
   `scripts/weekly-report.mjs` output via Gmail (secrets `GMAIL_USERNAME`, `GMAIL_APP_PASSWORD`).
   - The suite step uses `shell: bash`, so `pipefail` keeps `tee` from masking failures.

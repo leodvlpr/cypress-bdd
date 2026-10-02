@@ -1,6 +1,7 @@
 import type { AriaRole, SelectorDefinition, SelectorParams, SelectorStrategy } from '../types/selector';
 
-export const qa = (value: string): SelectorStrategy => ({ type: 'data-qa', value });
+/** Test-id strategy; resolved against the configured TEST_ID_ATTRIBUTE (e.g. `data-qa`, `data-testid`). */
+export const testId = (value: string): SelectorStrategy => ({ type: 'test-id', value });
 export const id = (value: string): SelectorStrategy => ({ type: 'id', value });
 export const css = (value: string): SelectorStrategy => ({ type: 'css', value });
 export const role = (ariaRole: AriaRole, name: string): SelectorStrategy => ({ type: 'role', value: { role: ariaRole, name } });
@@ -40,6 +41,8 @@ export function describeStrategy(strategy: SelectorStrategy): string {
       return `role(${strategy.value.role}, "${strategy.value.name}")`;
     case 'text':
       return `text(${String(strategy.value)}${strategy.tag ? `, ${strategy.tag}` : ''})`;
+    case 'test-id':
+      return `testId(${strategy.value})`;
     default:
       return `${strategy.type}(${strategy.value})`;
   }

@@ -71,10 +71,12 @@ feature  →  step definition  →  flow  →  component  →  selector definiti
 | **Component** | One UI piece. Plain objects of functions, not classes. |
 | **Selector definition** | A named, ordered list of strategies per element. |
 | **Resolver** (`cy.getElement`) | The single place where the DOM is queried. |
+| **Configuration** (`appConfig()`) | Target URL, test-id attribute and test data, from `.env`. |
 
 Two custom lint scripts keep this honest in CI:
-- `lint:selectors` fails the build if any file outside the resolver calls `cy.get`, `cy.contains` or `.find`, or
-  if `cy.visit` / `cy.location` are used outside the navigation flow.
+- `lint:selectors` fails the build if any file outside the resolver calls `cy.get`, `cy.contains` or `.find`, if
+  `cy.visit` / `cy.location` are used outside the navigation flow, or if `Cypress.env` is read outside
+  `appConfig()`.
 - `lint:scenarios` enforces the scenario-naming convention.
 
 ## BDD with Cucumber
@@ -123,10 +125,10 @@ placeOrderButton: selector(
 ),
 ```
 
-**Strategy types.** `data-qa` is always primary when the element has one. The others are chosen per element, by
+**Strategy types.** The test id is always primary when the element has one. The others are chosen per element, by
 what the site actually offers:
 
-- `data-qa`: the site's own test attribute.
+- `testId`: the test-id attribute agreed with development, configured with `TEST_ID_ATTRIBUTE` (`data-qa` here).
 - `id`: an app-owned element id.
 - `css`: other app-owned attributes (`data-*`, `name`, `href`), never style classes.
 - `role`: ARIA role + accessible name.
@@ -179,7 +181,7 @@ the suite trustworthy.
 ### Living proof: the `@demo` scenario
 
 [`resilience-demo.feature`](cypress/e2e/features/resilience-demo.feature) (`013 [RESILIENCE]`) uses a
-**deliberately degraded** logo selector: its primary `data-qa` does not exist, so it always falls back to the
+**deliberately degraded** logo selector: its primary `testId` does not exist, so it always falls back to the
 verified `role(img, …)` strategy. The scenario asserts both that the logo is still found and that the drift event
 was written correctly.
 
@@ -200,7 +202,7 @@ Three GitHub Actions workflows live in [`.github/workflows/`](.github/workflows)
 
 | Workflow | Trigger | What it does |
 | --- | --- | --- |
-| [`ci.yml`](.github/workflows/ci.yml) | Push / PR to `main` | `npm ci` → `lint:scenarios` → `lint:selectors` → `typecheck` → `cy:run` (main suite only). It uploads screenshots/videos on failure, and the drift log on every run. |
+| [`ci.yml`](.github/workflows/ci.yml) | Push / PR to `main` | `npm ci` → `.env` from the template → `lint:scenarios` → `lint:selectors` → `typecheck` → `cy:run` (main suite only). It uploads screenshots/videos on failure, and the drift log on every run. |
 | [`weekly-report.yml`](.github/workflows/weekly-report.yml) | Mondays 08:00 UTC, or manually | Runs the suite and emails a report. |
 | [`pr-review.yml`](.github/workflows/pr-review.yml) | PR to `main` opened/updated, and on merge | Claude Code reviews the PR, then posts a post-merge summary. |
 
@@ -307,7 +309,19 @@ behaviour.
 git clone https://github.com/leodvlpr/cypress-bdd.git
 cd cypress-bdd
 npm ci
+cp .env.example .env   # target URL, test-id attribute and test data (see below)
 ```
+
+**Configuration.** `.env` holds everything that depends on the target app:
+- the base URL and test-id attribute;
+- the blocked third-party hosts;
+- the generated-user profile and an optional fixed password;
+- the contact data and the test payment card;
+- the product catalog file.
+
+Every key is documented in [`.env.example`](.env.example), and a non-empty environment variable overrides it.
+Missing or invalid values stop the run before Cypress starts. Pointing the suite at another URL or data set is a
+`.env` change. See [Configuration](docs/testing-architecture.md#configuration-env).
 
 | Command | What it does |
 | --- | --- |
@@ -325,12 +339,15 @@ Run a single feature with `npx cypress run --spec cypress/e2e/features/cart.feat
 ## Project structure
 
 ```text
+.env.example               # Every configuration key, documented; copy to .env (git-ignored)
 cypress/
+  config/                  # Node-side config loader: reads .env + environment, validates, fails fast
   e2e/features/            # Gherkin features (one per business area + the @demo resilience scenario)
   fixtures/                # Reference product catalog
   support/
     assertions/            # Cross-component end-state checks (signed out, drift logged)
     commands/              # cy.getElement / cy.expectAbsent resolver, API seeding commands
+    config.ts              # appConfig(): the only way specs read configuration
     components/            # One reusable UI piece per file
     data/                  # Unique per-scenario test data factories
     flows/                 # Business intents; navigation.flow.ts owns routes and cy.visit

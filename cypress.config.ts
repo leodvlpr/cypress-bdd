@@ -4,22 +4,22 @@ import { defineConfig } from 'cypress';
 import createBundler from '@bahmutov/cypress-esbuild-preprocessor';
 import { addCucumberPreprocessorPlugin } from '@badeball/cypress-cucumber-preprocessor';
 import createEsbuildPlugin from '@badeball/cypress-cucumber-preprocessor/esbuild';
+import { loadAppConfig } from './cypress/config/load-config';
 import { DEMO_DRIFT_LOG, DRIFT_LOG } from './cypress/support/drift';
 import type { DriftEvent } from './cypress/support/types/drift';
 
+// Target application and test data come from .env / environment variables (see .env.example).
+// Fails fast with the list of missing keys before Cypress starts.
+const app = loadAppConfig(__dirname);
+
 export default defineConfig({
   e2e: {
-    baseUrl: 'https://automationexercise.com',
+    baseUrl: app.baseUrl,
     specPattern: 'cypress/e2e/features/**/*.feature',
-    // @demo scenarios deliberately degrade selectors; they only run through `npm run cy:demo`.
-    env: { tags: 'not @demo' },
-    // Third-party consent dialog and ads overlay the app non-deterministically; they are not under test.
-    blockHosts: [
-      'fundingchoicesmessages.google.com',
-      '*.googlesyndication.com',
-      '*.doubleclick.net',
-      '*.adtrafficquality.google',
-    ],
+    // `app` is read in specs through appConfig(); @demo scenarios only run through `npm run cy:demo`.
+    env: { tags: 'not @demo', app },
+    // Third-party hosts (consent dialogs, ads) that overlay the app non-deterministically; not under test.
+    blockHosts: app.blockHosts,
     async setupNodeEvents(on, config) {
       await addCucumberPreprocessorPlugin(on, config);
       on(

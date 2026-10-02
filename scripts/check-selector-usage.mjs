@@ -1,5 +1,5 @@
 // Enforces the single point of selector resolution: element lookups only through cy.getElement,
-// and navigation (cy.visit / cy.location) only in the navigation flow.
+// navigation (cy.visit / cy.location) only in the navigation flow, and configuration only through appConfig().
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -10,6 +10,7 @@ const RULES = [
   { pattern: /(\)|^\s*)\.find\(/, allowedIn: ['commands/selector.commands.ts'], hint: 'scope with .within() and cy.getElement' },
   { pattern: /\bcy\.getByQa\(/, allowedIn: [], hint: 'cy.getByQa was replaced by cy.getElement' },
   { pattern: /\bcy\.(visit|location)\(/, allowedIn: ['flows/navigation.flow.ts'], hint: 'use the navigation flow' },
+  { pattern: /\bCypress\.env\(/, allowedIn: ['config.ts'], hint: 'read configuration through appConfig()' },
 ];
 
 const files = readdirSync(SUPPORT_DIR, { recursive: true }).filter((file) => file.endsWith('.ts'));

@@ -1,3 +1,4 @@
+import { appConfig } from '../config';
 import { describeDefinition, describeStrategy } from '../selectors/selector';
 import type { DriftEvent } from '../types/drift';
 import type { AriaRole, SelectorDefinition, SelectorStrategy } from '../types/selector';
@@ -13,6 +14,7 @@ const ROLE_CANDIDATES: Record<AriaRole, string> = {
 };
 
 const normalize = (value: string) => value.replace(/\s+/g, ' ').trim();
+const testIdSelector = (value: string) => `[${appConfig().testIdAttribute}="${value}"]`;
 
 // Simplified accessible name for the roles above. CSS pseudo-content (icon-font glyphs) is ignored.
 // Elements live in the app's iframe, so `instanceof` against this window's classes would always be false.
@@ -37,8 +39,8 @@ function textMatches(element: HTMLElement, value: string | RegExp): boolean {
 /** Synchronous, non-retrying lookup used to decide which strategy currently matches. */
 function matchNow($root: JQuery<HTMLElement>, strategy: SelectorStrategy): JQuery<HTMLElement> {
   switch (strategy.type) {
-    case 'data-qa':
-      return $root.find(`[data-qa="${strategy.value}"]`);
+    case 'test-id':
+      return $root.find(testIdSelector(strategy.value));
     case 'id':
       return $root.find(`[id="${strategy.value}"]`);
     case 'css':
@@ -61,8 +63,8 @@ function matchNow($root: JQuery<HTMLElement>, strategy: SelectorStrategy): JQuer
 /** Retryable Cypress query for a strategy, so later assertions re-query the DOM. */
 function query(strategy: SelectorStrategy, options: ResolveOptions): Cypress.Chainable<JQuery<HTMLElement>> {
   switch (strategy.type) {
-    case 'data-qa':
-      return cy.get(`[data-qa="${strategy.value}"]`, options);
+    case 'test-id':
+      return cy.get(testIdSelector(strategy.value), options);
     case 'id':
       return cy.get(`[id="${strategy.value}"]`, options);
     case 'css':
@@ -82,8 +84,8 @@ function query(strategy: SelectorStrategy, options: ResolveOptions): Cypress.Cha
 function describeScope($root: JQuery<HTMLElement>): string | undefined {
   const root = $root[0];
   if (!root || root === root.ownerDocument.documentElement) return undefined;
-  const qaValue = root.getAttribute('data-qa');
-  if (qaValue) return `[data-qa="${qaValue}"]`;
+  const testIdValue = root.getAttribute(appConfig().testIdAttribute);
+  if (testIdValue) return testIdSelector(testIdValue);
   if (root.id) return `#${root.id}`;
   return root.tagName.toLowerCase();
 }

@@ -19,6 +19,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Create .env from the template
+        run: cp .env.example .env
+
       # continue-on-error so the email always goes out; the last step turns the job red if this failed.
       # `shell: bash` enables pipefail, so a failing suite is not masked by tee's exit code.
       - name: Run Cypress suite
@@ -47,7 +50,7 @@ jobs:
           secure: true
           username: ${{ secrets.GMAIL_USERNAME }}
           password: ${{ secrets.GMAIL_APP_PASSWORD }}
-          subject: "Weekly Test Report — automationexercise-cypress-bdd (${{ steps.suite.outcome == 'success' && 'passed' || 'FAILED' }})"
+          subject: "Weekly Test Report — ${{ github.event.repository.name }} (${{ steps.suite.outcome == 'success' && 'passed' || 'FAILED' }})"
           to: ${{ secrets.GMAIL_USERNAME }}
           from: Cypress BDD Framework <${{ secrets.GMAIL_USERNAME }}>
           body: file://weekly-report.md

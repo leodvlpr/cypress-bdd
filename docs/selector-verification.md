@@ -12,6 +12,8 @@ How to re-check:
 2. Compare the first matched node of each fallback with the primary's (`el === other`).
 3. Update this table.
 
+`testId(...)` strategies resolve against the configured test-id attribute, which is `data-qa` on this site.
+
 Definitions with a single strategy (e.g. `cartTable.row`, `#cartModal`, `#submit_search`) have nothing to compare
 and are not listed.
 
@@ -22,18 +24,18 @@ and are not listed.
 | `header.logo` | `/login` | `role(img, "Website for automation practice")` → `css(img[src="/static/images/home/logo.png"])` | 1 match each, SAME |
 | `header.loginLink` | `/login` | `role(link, "Signup / Login")` → `css(a[href="/login"])` → `text(Signup / Login, a)` | 1 match each, SAME ¹ |
 | `header.logoutLink` | `/` (signed in) | `role(link, "Logout")` → `css(a[href="/logout"])` → `text(Logout, a)` | 1 match each, SAME ¹ |
-| `auth.loginEmailInput` | `/login` | `data-qa(login-email)` → `css(form[action="/login"] input[name="email"])` | 1 match each, SAME |
-| `auth.loginPasswordInput` | `/login` | `data-qa(login-password)` → `css(form[action="/login"] input[name="password"])` | 1 match each, SAME |
-| `auth.loginSubmitButton` | `/login` | `data-qa(login-button)` → `role(button, "Login")` | 1 match each, SAME |
-| `signupForm.nameInput` | `/login` | `data-qa(signup-name)` → `css(form[action="/signup"] input[name="name"])` | 1 match each, SAME |
-| `signupForm.emailInput` | `/login` | `data-qa(signup-email)` → `css(form[action="/signup"] input[name="email"])` | 1 match each, SAME |
-| `signupForm.submitButton` | `/login` | `data-qa(signup-button)` → `role(button, "Signup")` | 1 match each, SAME |
+| `auth.loginEmailInput` | `/login` | `testId(login-email)` → `css(form[action="/login"] input[name="email"])` | 1 match each, SAME |
+| `auth.loginPasswordInput` | `/login` | `testId(login-password)` → `css(form[action="/login"] input[name="password"])` | 1 match each, SAME |
+| `auth.loginSubmitButton` | `/login` | `testId(login-button)` → `role(button, "Login")` | 1 match each, SAME |
+| `signupForm.nameInput` | `/login` | `testId(signup-name)` → `css(form[action="/signup"] input[name="name"])` | 1 match each, SAME |
+| `signupForm.emailInput` | `/login` | `testId(signup-email)` → `css(form[action="/signup"] input[name="email"])` | 1 match each, SAME |
+| `signupForm.submitButton` | `/login` | `testId(signup-button)` → `role(button, "Signup")` | 1 match each, SAME |
 | `accountDetailsForm.titleRadio(Mr)` | `/signup` | `id(id_gender1)` → `role(radio, "Mr.")` → `css([data-qa="title"] input[value="Mr"])` | 1 match each, SAME ² |
 | `accountDetailsForm.titleRadio(Mrs)` | `/signup` | `id(id_gender2)` → `role(radio, "Mrs.")` → `css([data-qa="title"] input[value="Mrs"])` | 1 match each, SAME ² |
-| `accountDetailsForm.*` text inputs and selects (14) | `/signup` | `data-qa(<field>)` → `id(<field>)` | 1 match each, SAME (all 14) |
-| `accountDetailsForm.createAccountButton` | `/signup` | `data-qa(create-account)` → `role(button, "Create Account")` | 1 match each, SAME |
-| `accountCreated.heading` | `/account_created` | `data-qa(account-created)` → `role(heading, "Account Created!")` | 1 match each, SAME |
-| `accountCreated.continueButton` | `/account_created` | `data-qa(continue-button)` → `role(link, "Continue")` | 1 match each, SAME |
+| `accountDetailsForm.*` text inputs and selects (14) | `/signup` | `testId(<field>)` → `id(<field>)` | 1 match each, SAME (all 14) |
+| `accountDetailsForm.createAccountButton` | `/signup` | `testId(create-account)` → `role(button, "Create Account")` | 1 match each, SAME |
+| `accountCreated.heading` | `/account_created` | `testId(account-created)` → `role(heading, "Account Created!")` | 1 match each, SAME |
+| `accountCreated.continueButton` | `/account_created` | `testId(continue-button)` → `role(link, "Continue")` | 1 match each, SAME |
 | `productSearch.searchInput` | `/products` | `id(search_product)` → `css(input[name="search"])` | 1 match each, SAME |
 | `productSearch.resultsHeading` | `/products?search=Blue Top` | `role(heading, "Searched Products")` → `text(/searched products/i, h2)` | 1 match each, SAME |
 | `productDetail.name("Blue Top")` | `/product_details/1` | `role(heading, "Blue Top")` → `text(Blue Top, h2)` | 1 match each, SAME |
@@ -42,11 +44,11 @@ and are not listed.
 | `cartTable.productName("Blue Top")` | `/view_cart`, within `#product-1` | `role(link, "Blue Top")` → `text(Blue Top)` | 1 match each, SAME |
 | `cartTable.quantity(3)` | `/view_cart`, within `#product-1` | `role(button, "3")` → `text(/^\s*3\s*$/, button)` | 1 match each, SAME |
 | `orderReview.placeOrderButton` | `/checkout` | `role(link, "Place Order")` → `css(a[href="/payment"])` → `text(Place Order, a)` | 1 match each, SAME |
-| `paymentForm.*` inputs (5) | `/payment` | `data-qa(<field>)` → `css(input[name="<field>"])` | 1 match each, SAME (all 5) |
-| `paymentForm.payButton` | `/payment` | `data-qa(pay-button)` → `role(button, "Pay and Confirm Order")` | 1 match each, SAME |
-| `orderConfirmation.heading` | `/payment_done/<amount>` | `data-qa(order-placed)` → `role(heading, "Order Placed!")` | 1 match each, SAME |
-| `contact.*` inputs (4) | `/contact_us` | `data-qa(<field>)` → `css(input/textarea[name="<field>"])` | 1 match each, SAME (all 4) |
-| `contact.submitButton` | `/contact_us` | `data-qa(submit-button)` → `role(button, "Submit")` | 1 match each, SAME |
+| `paymentForm.*` inputs (5) | `/payment` | `testId(<field>)` → `css(input[name="<field>"])` | 1 match each, SAME (all 5) |
+| `paymentForm.payButton` | `/payment` | `testId(pay-button)` → `role(button, "Pay and Confirm Order")` | 1 match each, SAME |
+| `orderConfirmation.heading` | `/payment_done/<amount>` | `testId(order-placed)` → `role(heading, "Order Placed!")` | 1 match each, SAME |
+| `contact.*` inputs (4) | `/contact_us` | `testId(<field>)` → `css(input/textarea[name="<field>"])` | 1 match each, SAME (all 4) |
+| `contact.submitButton` | `/contact_us` | `testId(submit-button)` → `role(button, "Submit")` | 1 match each, SAME |
 
 ¹ **Icon links and buttons.** Playwright includes the icon-font glyph (CSS `::before`) in the accessible name, so
 an *exact* `getByRole` match fails. A substring match resolves to the same node. The suite's role matcher ignores

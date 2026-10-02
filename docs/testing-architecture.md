@@ -20,6 +20,7 @@ feature (.feature)  →  step definition  →  flow  →  component  →  select
 | Selector | `cypress/support/selectors/` | One file per UI piece with named selector definitions (ordered strategies). No Cypress logic. |
 | Command | `cypress/support/commands/` | `cy.getElement` (the single selector resolver) and API seeding. Typed in `support/types/cypress.d.ts`. |
 | Data | `cypress/support/data/`, `cypress/fixtures/` | Factories for unique per-scenario data and the reference product catalog. |
+| Configuration | `.env` / `.env.example`, `cypress/config/load-config.ts`, `cypress/support/config.ts` | Target app and test data (URL, test-id attribute, users, card, catalog). Validated before the run; read in specs only through `appConfig()`. |
 | Context | `cypress/support/world.ts`, `step_definitions/hooks.ts` | Per-scenario state (`this`) and cleanup after every scenario. |
 
 ## Current coverage
@@ -62,6 +63,32 @@ Scenario: 003 [LOGIN] Validate incorrect password shows the invalid credentials 
 
 `npm run lint:scenarios` checks the format, duplicate IDs and components, and prints the next free ID.
 
+## Configuration (`.env`)
+
+Everything that depends on the target application or its test data lives in **`.env`**, not in code. That covers:
+- the base URL;
+- the test-id attribute;
+- the blocked third-party hosts;
+- the generated-user profile and an optional fixed password;
+- the contact data;
+- the test payment card;
+- the reference product catalog.
+
+How it works:
+- **Template:** `.env.example` is versioned and documents every key. `.env` is git-ignored: create it with
+  `cp .env.example .env`.
+- **Loading:** `cypress/config/load-config.ts` builds a typed `AppConfig` on the Node side. A **non-empty
+  environment variable overrides** the `.env` value, so CI or a shell can change single keys. An empty variable
+  does not mask the file.
+- **Validation:** missing required keys, an invalid `BASE_URL` / `TEST_USER_TITLE` and a missing or malformed
+  `CATALOG_FIXTURE` stop the run before Cypress starts, with the full list of problems.
+- **Access in specs:** `cypress.config.ts` injects the config as `env.app`, and specs read it **only** through
+  `appConfig()` (`cypress/support/config.ts`). `lint:selectors` rejects `Cypress.env(` anywhere else.
+- **In CI:** both workflows run `cp .env.example .env`, so they test the target described by the template.
+  Override single values with environment variables in the workflow if needed.
+- **Retargeting:** edit `.env` for a new URL, test-id attribute or data set. Selectors, components and flows
+  still describe the current app and need their own refactor.
+
 ## Selector convention
 
 ### Single point of resolution
@@ -86,7 +113,7 @@ export const orderReviewSelectors = {
 
 | Strategy | Builder | Use |
 | --- | --- | --- |
-| `data-qa` | `qa('login-email')` | `data-qa` attribute: the agreed contract with development. Always primary when it exists. |
+| `test-id` | `testId('login-email')` | The test-id attribute agreed with development; its name comes from `TEST_ID_ATTRIBUTE` (`data-qa` on this app). Always primary when it exists. |
 | `id` | `id('search_product')` | App-owned element id. |
 | `css` | `css('a[href="/payment"]')` | Other app-owned attribute (`data-*`, form field `name`, `href`). Never style classes. |
 | `role` | `role('button', 'Add to cart')` | ARIA role + accessible name, for elements with a real role (button, link, heading, img, radio). |
@@ -145,7 +172,7 @@ from drift logs.
 
 `resilience-demo.feature` (`013 [RESILIENCE]`) exists **only to demonstrate the fallback + drift mechanism**.
 
-- **Deliberately degraded selector:** `resilienceDemo.degradedLogo` has a primary `data-qa` that does not exist
+- **Deliberately degraded selector:** `resilienceDemo.degradedLogo` has a primary `testId` that does not exist
   on the site, so resolution always falls back to the logo's verified `role(img, …)` strategy.
 - **Self-checking:** the scenario asserts both that the logo is still found and that the drift event was
   written, with the expected strategy index, primary and fallback.
@@ -168,7 +195,8 @@ keep a single strategy (e.g. `#cartModal`, `#submit_search`, the cart remove lin
 
 ### Rules
 
-- The app already uses **`data-qa`** (`login-email`, `login-password`, `login-button`, …), so it is the preferred
+- The test-id attribute is configured with `TEST_ID_ATTRIBUTE`. This app already uses **`data-qa`** (`login-email`,
+  `login-password`, `login-button`, …), so `testId(...)` is the preferred
   strategy. Neither `data-testid` nor `data-cy` is introduced.
 - Forbidden: XPath, style classes, DOM structure, indexes (`:nth-child`) or text as the primary selector.
 - **Narrow exception, fallbacks only:** a fallback may be scoped by an app-owned attribute of an ancestor when the
@@ -215,18 +243,22 @@ keep a single strategy (e.g. `#cartModal`, `#submit_search`, the cart remove lin
 
 ## Test data
 
-- Each scenario creates its own user with `buildUniqueUser()` (unique email + random password) through
-  `cy.createAccountByApi()` against the public `POST /api/createAccount` endpoint.
+- Each scenario creates its own user with `buildUniqueUser()` through `cy.createAccountByApi()`, against the
+  public `POST /api/createAccount` endpoint.
+  - The email is unique: `TEST_USER_EMAIL_PREFIX` + a unique id + `TEST_USER_EMAIL_DOMAIN`.
+  - The profile comes from `TEST_USER_*`.
+  - The password is random per scenario unless `TEST_USER_PASSWORD` is set.
 - The `After` hook deletes it with `cy.deleteAccountByApi()` (`DELETE /api/deleteAccount`), so runs are
   idempotent and parallel-safe.
 - Scenario state is shared through the preprocessor context (`this`) and cleared after every scenario.
 - There are no real credentials in the repository. Passwords are never written to the Cypress log
   (`log: false`, `failOnStatusCode: false`).
-- The reference catalog (`cypress/fixtures/products.json`) mirrors stable products of the demo store (checked
-  against `GET /api/productsList`). Features refer to products by name and `findProduct()` fails listing the
+- The reference catalog is the JSON file named by `CATALOG_FIXTURE` (`cypress/fixtures/products.json` for this
+  store). It mirrors stable products of the demo store (checked against `GET /api/productsList`). Features refer to products by name and `findProduct()` fails listing the
   known products when the name does not exist.
 - Gherkin tables are converted to types (`parseCartTable`) and an invalid row fails naming the row and column.
-- Payment uses the public test card 4111 1111 1111 1111; the store does not process real payments.
+- Payment uses the test card from `PAYMENT_CARD_*` (here the public test number 4111 1111 1111 1111). The store
+  does not process real payments, and the value must never be a real card.
 - `cy.loginByApi` / `cy.setAuthSession` are **not** implemented: `POST /api/verifyLogin` only validates
   credentials and issues no session cookie, so login goes through the UI.
 
@@ -244,7 +276,8 @@ keep a single strategy (e.g. `#cartModal`, `#submit_search`, the cart remove lin
 ## Running locally
 
 ```bash
-npm install
+npm ci
+cp .env.example .env                                                 # required: target app + test data config
 npm run typecheck
 npm run lint                                                         # scenario names + selector usage
 npm run lint:scenarios                                               # scenario names + next free ID
@@ -265,10 +298,11 @@ Requires internet access to https://automationexercise.com.
 `.github/workflows/ci.yml` runs on every push and pull request to `main`, on `ubuntu-latest` with Node 22:
 
 1. `npm ci`
-2. `npm run lint:scenarios`: scenario names and IDs.
-3. `npm run lint:selectors`: every lookup goes through `cy.getElement`.
-4. `npm run typecheck`
-5. `npm run cy:run`: the main suite. `@demo` scenarios are excluded by `env.tags = 'not @demo'`.
+2. `cp .env.example .env`: CI tests the target described by the template.
+3. `npm run lint:scenarios`: scenario names and IDs.
+4. `npm run lint:selectors`: every lookup goes through `cy.getElement`, and configuration through `appConfig()`.
+5. `npm run typecheck`
+6. `npm run cy:run`: the main suite. `@demo` scenarios are excluded by `env.tags = 'not @demo'`.
 
 Artifacts:
 
@@ -285,7 +319,7 @@ The resilience demo (`npm run cy:demo`) is not part of CI.
 `gh workflow run weekly-report.yml`. It emails a report to `GMAIL_USERNAME` (repository secrets `GMAIL_USERNAME`
 and `GMAIL_APP_PASSWORD`, a Gmail app password).
 
-1. `npm run cy:run`, tee'd to `cypress-output.log`. It has `continue-on-error`, so the email is always sent, and
+1. `cp .env.example .env`, then `npm run cy:run`, tee'd to `cypress-output.log`. It has `continue-on-error`, so the email is always sent, and
    `shell: bash` (pipefail), so a failure is not masked by `tee`.
 2. `npm run drift:report`: `scripts/drift-report.mjs` turns `drift-log.ndjson` into `cypress/.drift/summary.md`,
    with one row per selector instance and scope.
@@ -319,6 +353,7 @@ The review prompt checks the conventions documented here:
 - scenario naming;
 - determinism rules;
 - the resilience policy;
+- configuration only through `.env` / `appConfig()`, with no hard-coded app values and every key in `.env.example`;
 - English only.
 
 **Keep this document current:** the reviewer is only as accurate as this document. Change the conventions here
