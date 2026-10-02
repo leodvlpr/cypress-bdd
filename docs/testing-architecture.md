@@ -27,13 +27,13 @@ feature (.feature)  →  step definition  →  flow  →  component  →  select
 | Feature | Scenarios | Components / flows |
 | --- | --- | --- |
 | `home.feature` | Homepage loads with the store logo (`@smoke`) | `header` / `navigation.flow` |
-| `authentication.feature` | Valid login (`@smoke`), incorrect password, logout | `auth`, `header` / `authentication.flow` |
+| `authentication.feature` | Valid login (`@smoke`), incorrect password, logout | `auth`, `header` / `authentication.flow`, `session.assertions` |
 | `registration.feature` | UI sign-up (`@smoke`), email already registered | `signup-form`, `account-details-form`, `account-created`, `header` / `registration.flow` |
 | `catalog.feature` | Search (`@smoke`), product detail | `product-search`, `product-detail` / `catalog.flow` |
 | `cart.feature` | Add several products with quantities (`@smoke`, typed DataTable), remove product | `product-detail`, `cart-added-modal`, `cart-table` / `cart.flow` |
 | `checkout.feature` | Signed-in order: delivery address + payment (`@smoke`) | `cart-table`, `order-review`, `payment-form`, `order-confirmation` / `checkout.flow` |
 | `contact.feature` | Contact form submission | `contact` / `contact.flow` |
-| `resilience-demo.feature` | **`@demo`, excluded by default.** Degraded selector falls back and logs demo drift | `resilience-demo` / `resilience-demo.flow` |
+| `resilience-demo.feature` | **`@demo`, excluded by default.** Degraded selector falls back and logs demo drift | `resilience-demo` / `drift.assertions` |
 
 Out of scope for now: subscription, categories/brands, reviews, invoice and scrolling.
 
