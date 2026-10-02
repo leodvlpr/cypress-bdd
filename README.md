@@ -123,13 +123,15 @@ placeOrderButton: selector(
 ),
 ```
 
-**Strategy types**, in order of preference:
+**Strategy types.** `data-qa` is always primary when the element has one. The others are chosen per element, by
+what the site actually offers:
 
-1. `data-qa`: the site's own test attribute.
-2. `id`
-3. `css`: other app-owned attributes, never style classes.
-4. `role`: ARIA role + accessible name.
-5. `text`: only when the text *is* the contract under test.
+- `data-qa`: the site's own test attribute.
+- `id`: an app-owned element id.
+- `css`: other app-owned attributes (`data-*`, `name`, `href`), never style classes.
+- `role`: ARIA role + accessible name.
+- `text`: only when the text *is* the contract under test, e.g. error messages, product data, or links rendered
+  without an `href` (and so without a link role).
 
 **How `cy.getElement(definition)` resolves an element:**
 - On each retry it checks **every strategy instantly, in order**, so a broken strategy costs no waiting.
