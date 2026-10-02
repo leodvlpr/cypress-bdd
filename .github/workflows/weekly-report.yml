@@ -4,6 +4,8 @@ on:
   schedule:
     - cron: '0 8 * * 1' # Every Monday 08:00 UTC
   workflow_dispatch: {} # allows manual trigger for testing
+  push: # TEMPORARY: verification only (workflow_dispatch needs the workflow on main). Remove after testing.
+    branches: [ci/weekly-report]
 
 jobs:
   weekly-run:
