@@ -5,3 +5,5 @@ cypress/downloads/
 .env
 .playwright-mcp/
 cypress/.drift/
+cypress-output.log
+weekly-report.md

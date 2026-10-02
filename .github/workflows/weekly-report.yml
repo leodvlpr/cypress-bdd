@@ -1,0 +1,73 @@
+name: Weekly Test Report
+
+on:
+  schedule:
+    - cron: '0 8 * * 1' # Every Monday 08:00 UTC
+  workflow_dispatch: {} # allows manual trigger for testing
+
+jobs:
+  weekly-run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      # continue-on-error so the email always goes out; the last step turns the job red if this failed.
+      # `shell: bash` enables pipefail, so a failing suite is not masked by tee's exit code.
+      - name: Run Cypress suite
+        id: suite
+        continue-on-error: true
+        shell: bash
+        run: npm run cy:run 2>&1 | tee cypress-output.log
+
+      - name: Generate drift report
+        if: always()
+        continue-on-error: true
+        run: npm run drift:report
+
+      - name: Build email report
+        if: always()
+        env:
+          SUITE_OUTCOME: ${{ steps.suite.outcome }}
+        run: node scripts/weekly-report.mjs cypress-output.log cypress/.drift/summary.md weekly-report.md
+
+      - name: Send email report
+        if: always()
+        uses: dawidd6/action-send-mail@v22
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          secure: true
+          username: ${{ secrets.GMAIL_USERNAME }}
+          password: ${{ secrets.GMAIL_APP_PASSWORD }}
+          subject: "Weekly Test Report — automationexercise-cypress-bdd (${{ steps.suite.outcome == 'success' && 'passed' || 'FAILED' }})"
+          to: ${{ secrets.GMAIL_USERNAME }}
+          from: Cypress BDD Framework <${{ secrets.GMAIL_USERNAME }}>
+          body: file://weekly-report.md
+          html_body: file://weekly-report.md
+          convert_markdown: true
+
+      - name: Upload report artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: weekly-report
+          path: |
+            weekly-report.md
+            cypress-output.log
+            cypress/.drift/drift-log.ndjson
+            cypress/.drift/summary.md
+            cypress/screenshots
+          retention-days: 30
+          if-no-files-found: ignore
+
+      - name: Fail the job if the suite failed
+        if: steps.suite.outcome == 'failure'
+        run: exit 1

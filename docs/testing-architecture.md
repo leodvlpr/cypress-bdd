@@ -245,6 +245,7 @@ npx cypress run --spec "cypress/e2e/features/cart.feature"           # any singl
 npm run cy:run                                                       # whole suite (excludes @demo)
 npm run cy:demo                                                      # only @demo scenarios (resilience demo)
 cat cypress/.drift/drift-log.ndjson                                  # real drift from the last cy:run (empty = none)
+npm run drift:report                                                 # drift summary table (cypress/.drift/summary.md)
 cat cypress/.drift/demo-drift-log.ndjson                             # demo drift from the last cy:demo
 npm run cy:open                                                      # interactive mode
 ```
@@ -269,6 +270,26 @@ Artifacts:
 | `drift-log` | Always | 30 days | `cypress/.drift/drift-log.ndjson`; empty when no selector drifted |
 
 The resilience demo (`npm run cy:demo`) is not part of CI.
+
+### Weekly report
+
+`.github/workflows/weekly-report.yml` runs the main suite **every Monday at 08:00 UTC**, and on demand with
+`gh workflow run weekly-report.yml`. It emails a report to `GMAIL_USERNAME` (repository secrets `GMAIL_USERNAME`
+and `GMAIL_APP_PASSWORD`, a Gmail app password).
+
+1. `npm run cy:run`, tee'd to `cypress-output.log`. It has `continue-on-error`, so the email is always sent, and
+   `shell: bash` (pipefail), so a failure is not masked by `tee`.
+2. `npm run drift:report`: `scripts/drift-report.mjs` turns `drift-log.ndjson` into `cypress/.drift/summary.md`,
+   with one row per selector instance and scope.
+3. `scripts/weekly-report.mjs` builds `weekly-report.md` from the Cypress output (ANSI stripped): verdict,
+   totals, failed scenarios by title, the per-spec "Run Finished" table and the drift summary.
+4. The report is emailed (plain text plus Markdown rendered as HTML). The subject ends in `(passed)` or
+   `(FAILED)`.
+5. The report, the raw output, the drift files and any screenshots are uploaded as the `weekly-report`
+   artifact (30 days).
+6. The job is marked red when the suite failed, so both signals exist: the email, and the Actions status.
+
+`npm run drift:report` also works locally after any `cy:run`.
 
 ## Self-healing policy
 
