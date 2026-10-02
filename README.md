@@ -74,7 +74,7 @@ feature  →  step definition  →  flow  →  component  →  selector definiti
 
 Two custom lint scripts keep this honest in CI:
 - `lint:selectors` fails the build if any file outside the resolver calls `cy.get`, `cy.contains` or `.find`, or
-  if `cy.visit` is used outside the navigation flow.
+  if `cy.visit` / `cy.location` are used outside the navigation flow.
 - `lint:scenarios` enforces the scenario-naming convention.
 
 ## BDD with Cucumber
