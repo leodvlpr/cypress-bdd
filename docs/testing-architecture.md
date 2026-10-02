@@ -291,6 +291,33 @@ and `GMAIL_APP_PASSWORD`, a Gmail app password).
 
 `npm run drift:report` also works locally after any `cy:run`.
 
+### Automated PR review (Claude Code)
+
+`.github/workflows/pr-review.yml` uses `anthropics/claude-code-action@v1` (repository secret `ANTHROPIC_API_KEY`).
+It has two moments:
+
+| Job | Trigger | What it does |
+| --- | --- | --- |
+| `review` | PR against `main` opened, updated or reopened | Reviews the PR diff against **this document**. It posts inline comments on specific violations and one summary comment with a verdict (✅ / ⚠️ / ❌). A new push cancels a review still in progress for the same PR. |
+| `merge-wrap-up` | PR merged into `main` | Posts a short comment confirming whether the merge introduced convention drift. |
+
+The review prompt checks the conventions documented here:
+
+- components per UI piece, not pages;
+- every lookup through `cy.getElement` / `cy.expectAbsent`;
+- selector definitions with ordered strategies and `paramSelector` for factories;
+- thin step definitions;
+- scenario naming;
+- determinism rules;
+- the resilience policy;
+- English only.
+
+**Keep this document current:** the reviewer is only as accurate as this document. Change the conventions here
+first, then in the code.
+
+The comments are posted by `github-actions[bot]` through the workflow's `GITHUB_TOKEN` (`github_token` input), so
+the Claude GitHub App is not required.
+
 ## Self-healing policy
 
 - **Agreed scope:** fallback selectors **with logging** of which strategy was used, implemented in
