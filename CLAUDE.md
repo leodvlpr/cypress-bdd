@@ -28,7 +28,7 @@ There are no unit tests: verification means the typecheck, both lints, and a Cyp
 
 ```text
 feature -> step definition -> flow -> component -> selector definition -> cy.getElement (resolver)
-                                 \-> assertions/ (end-state checks spanning components)
+                 \-> assertions/ (Then-side end-state checks spanning components)
 ```
 
 All paths below are under `cypress/support/`.
@@ -48,10 +48,10 @@ All paths below are under `cypress/support/`.
   `qa`, `id`, `css`, `role` and `text`, in `selectors/selector.ts`.
   - Factories **must** use `paramSelector(name, { params }, ...)`, so drift logs can tell instances apart.
     `lint:selectors` rejects plain `selector()` in a factory.
-  - `data-qa` (the site's own test attribute) is always primary when it exists. Never use style classes, XPath
-    or `:nth-child`.
+  - `data-qa` (the site's own test attribute) is always primary when it exists. Never use style classes, XPath,
+    DOM structure or `:nth-child`.
   - `text` is only for contract text: messages, product data, and `<a>` elements without `href`, which have no
-    link role.
+    link role. Only in those cases may `text` be the primary strategy.
   - Ancestor scoping (`[data-qa="x"] input…`, `form[action="/login"] input…`) is allowed only as a fallback.
 - **`commands/selector.commands.ts`**: the **only** file allowed to call `cy.get` / `cy.contains` / `.find`.
   - `cy.getElement(def)` checks every strategy synchronously and in order on each retry, then returns a
