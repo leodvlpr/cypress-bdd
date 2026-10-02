@@ -16,4 +16,6 @@ export interface DriftEvent {
   timestamp: string;
   specPath: string;
   test: string;
+  /** Set for demo definitions; routes the event to the demo drift log. */
+  demo?: true;
 }

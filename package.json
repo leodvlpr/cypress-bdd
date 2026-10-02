@@ -8,7 +8,8 @@
     "typecheck": "tsc --noEmit",
     "lint:scenarios": "node scripts/check-scenario-names.mjs",
     "lint:selectors": "node scripts/check-selector-usage.mjs",
-    "lint": "npm run lint:scenarios && npm run lint:selectors"
+    "lint": "npm run lint:scenarios && npm run lint:selectors",
+    "cy:demo": "cypress run --env tags=@demo"
   },
   "keywords": [],
   "author": "",

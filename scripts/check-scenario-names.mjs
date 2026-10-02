@@ -4,7 +4,7 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 const FEATURES_DIR = 'cypress/e2e/features';
-const COMPONENTS = ['HOME', 'LOGIN', 'LOGOUT', 'SIGNUP', 'SEARCH', 'PRODUCT', 'CART', 'CHECKOUT', 'CONTACT'];
+const COMPONENTS = ['HOME', 'LOGIN', 'LOGOUT', 'SIGNUP', 'SEARCH', 'PRODUCT', 'CART', 'CHECKOUT', 'CONTACT', 'RESILIENCE'];
 const TITLE = /^(\d{3}) \[([A-Z]+)\] Validate \S.*$/;
 
 const featureFiles = readdirSync(FEATURES_DIR, { recursive: true })

@@ -19,6 +19,14 @@ export function paramSelector(
   return { name, params, strategies };
 }
 
+/**
+ * Marks a definition as demo-only: its drift events go to the separate demo log, never the real one.
+ * Only for scenarios tagged @demo.
+ */
+export function demoSelector(definition: SelectorDefinition): SelectorDefinition {
+  return { ...definition, demo: true };
+}
+
 /** Readable id for logs and errors, e.g. `cartTable.row(productId=1)`. */
 export function describeDefinition({ name, params }: SelectorDefinition): string {
   if (!params) return name;

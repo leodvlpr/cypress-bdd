@@ -1,3 +1,5 @@
 {
-  "stepDefinitions": "cypress/support/step_definitions/**/*.ts"
+  "stepDefinitions": "cypress/support/step_definitions/**/*.ts",
+  "filterSpecs": true,
+  "omitFiltered": true
 }

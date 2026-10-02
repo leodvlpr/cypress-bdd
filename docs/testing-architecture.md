@@ -32,6 +32,7 @@ feature (.feature)  →  step definition  →  flow  →  component  →  select
 | `cart.feature` | Add several products with quantities (`@smoke`, typed DataTable), remove product | `product-detail`, `cart-added-modal`, `cart-table` / `cart.flow` |
 | `checkout.feature` | Signed-in order: delivery address + payment (`@smoke`) | `cart-table`, `order-review`, `payment-form`, `order-confirmation` / `checkout.flow` |
 | `contact.feature` | Contact form submission | `contact` / `contact.flow` |
+| `resilience-demo.feature` | **`@demo`, excluded by default.** Degraded selector falls back and logs demo drift | `resilience-demo` / `resilience-demo.flow` |
 
 Out of scope for now: subscription, categories/brands, reviews, invoice and scrolling.
 
@@ -54,7 +55,7 @@ Scenario: 003 [LOGIN] Validate incorrect password shows the invalid credentials 
 - **ID**: 3-digit number, unique across the suite and increasing. A new scenario takes the next free ID; IDs
   are never reused, even when a scenario is deleted.
 - **Component**: functional area in upper case between brackets: `HOME`, `LOGIN`, `LOGOUT`, `SIGNUP`, `SEARCH`,
-  `PRODUCT`, `CART`, `CHECKOUT`, `CONTACT`. For a new area, add it to `COMPONENTS` in
+  `PRODUCT`, `CART`, `CHECKOUT`, `CONTACT`, `RESILIENCE`. For a new area, add it to `COMPONENTS` in
   `scripts/check-scenario-names.mjs`.
 - **Title**: starts with `Validate` and describes the scenario's main assertion.
 
@@ -138,6 +139,24 @@ row: (productId: number) => paramSelector('cartTable.row', { productId }, id(`pr
 
 `npm run lint:selectors` rejects a factory built with plain `selector()`, because its arguments would be missing
 from drift logs.
+
+### Resilience demo (`@demo`)
+
+`resilience-demo.feature` (`013 [RESILIENCE]`) exists **only to demonstrate the fallback + drift mechanism**.
+
+- **Deliberately degraded selector:** `resilienceDemo.degradedLogo` has a primary `data-qa` that does not exist
+  on the site, so resolution always falls back to the logo's verified `role(img, …)` strategy.
+- **Self-checking:** the scenario asserts both that the logo is still found and that the drift event was
+  written, with the expected strategy index, primary and fallback.
+- **Isolated output:** the definition is wrapped in `demoSelector()`, which sets `demo: true`. The `logDrift`
+  task routes those events to `cypress/.drift/demo-drift-log.ndjson`, never to `drift-log.ndjson`, so the
+  deliberate degradation never pollutes the real drift signal.
+- **Excluded by default:** `cypress.config.ts` sets `env.tags = 'not @demo'`, and the preprocessor's
+  `filterSpecs` / `omitFiltered` skip the spec entirely. `npm run cy:run` never runs it.
+- **Running it:** `npm run cy:demo` (`--env tags=@demo`) runs only `@demo` scenarios.
+- **Reset per log:** each run empties only the log it writes to. `cy:run` resets `drift-log.ndjson` and
+  leaves the demo log untouched; `cy:demo` resets `demo-drift-log.ndjson` and leaves the real log untouched.
+- **Scope:** `demoSelector()` must only be used by `@demo` scenarios.
 
 ### Adding a fallback
 
@@ -223,8 +242,10 @@ npm run lint                                                         # scenario 
 npm run lint:scenarios                                               # scenario names + next free ID
 npx cypress run --spec cypress/e2e/features/authentication.feature   # reference feature
 npx cypress run --spec "cypress/e2e/features/cart.feature"           # any single feature
-npm run cy:run                                                       # whole suite
-cat cypress/.drift/drift-log.ndjson                                  # drift from the last run (absent = none)
+npm run cy:run                                                       # whole suite (excludes @demo)
+npm run cy:demo                                                      # only @demo scenarios (resilience demo)
+cat cypress/.drift/drift-log.ndjson                                  # real drift from the last cy:run (absent = none)
+cat cypress/.drift/demo-drift-log.ndjson                             # demo drift from the last cy:demo
 npm run cy:open                                                      # interactive mode
 ```
 

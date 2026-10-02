@@ -22,6 +22,8 @@ export interface SelectorDefinition {
   name: string;
   /** Arguments of a parameterized definition (e.g. `{ productId: 1 }` for `cartTable.row`), so logs tell instances apart. */
   params?: Readonly<SelectorParams>;
+  /** Demo-only definition: its drift goes to the isolated demo log (see `demoSelector`). */
+  demo?: true;
   strategies: readonly [SelectorStrategy, ...SelectorStrategy[]];
 }
 

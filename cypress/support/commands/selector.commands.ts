@@ -124,6 +124,7 @@ Cypress.Commands.add('getElement', (definition: SelectorDefinition, options: Res
           timestamp: new Date().toISOString(),
           specPath: Cypress.spec.relative,
           test: Cypress.currentTest.titlePath.join(' > '),
+          ...(definition.demo && { demo: true as const }),
         };
         const where = event.scope ? ` within ${event.scope}` : '';
         Cypress.log({ name: 'drift', message: `${event.label}${where}: ${event.primaryStrategy} missing, used ${event.strategyUsed}` });
